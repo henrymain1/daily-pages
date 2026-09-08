@@ -307,17 +307,22 @@ code {
 .mood-label { font-family: var(--font-display); font-size: 0.82rem; color: var(--ink); font-weight: 600; }
 .mood-row { display: flex; gap: 0.4rem; }
 .mood-btn {
-  font-size: 1.25rem; line-height: 1;
-  width: 44px; height: 44px;
-  border-radius: 10px;
+  width: 46px; height: 46px;
+  border-radius: 12px;
   border: var(--bw) solid transparent;
   background: transparent;
   cursor: pointer;
-  filter: grayscale(0.6) opacity(0.55);
+  display: flex; align-items: center; justify-content: center;
+  padding: 0;
   transition: all 0.12s ease;
 }
-.mood-btn:hover { filter: none; background: var(--surface-2); border-color: var(--ink); }
-.mood-btn.active { filter: none; background: var(--primary-weak); border-color: var(--ink); box-shadow: var(--sh); }
+.mood-btn .mood-face { opacity: 0.65; transition: opacity 0.12s ease, transform 0.12s ease; }
+.mood-btn:hover { background: var(--surface-2); border-color: var(--ink); }
+.mood-btn:hover .mood-face { opacity: 1; }
+.mood-btn.active { background: var(--primary-weak); border-color: var(--ink); box-shadow: var(--sh); }
+.mood-btn.active .mood-face { opacity: 1; }
+.mood-face { display: block; color: var(--ink); }
+.mood-face-wrap { display: inline-flex; align-items: center; }
 
 .entry-title {
   font-family: var(--font-display); font-size: 1.5rem; font-weight: 600;
@@ -370,9 +375,9 @@ code {
 .cal-day { font-family: var(--font-display); font-size: 0.8rem; font-weight: 500; }
 .cal-cell.has { background: var(--primary-weak); border-color: var(--ink); }
 .cal-cell.has .cal-day { font-weight: 700; }
-.cal-dot { font-size: 0.6rem; line-height: 1; height: 0.7em; }
+.cal-dot { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--ink); }
 .cal-cell.today { background: var(--yellow); border-color: var(--ink); }
-.cal-cell.selected { box-shadow: var(--sh); border-color: var(--ink); transform: translate(-1px, -1px); }
+.cal-cell.selected { border-color: var(--ink); box-shadow: inset 0 0 0 2.5px var(--ink); }
 .cal-cell.future { color: var(--muted); opacity: 0.4; cursor: default; }
 
 /* Entries list */
@@ -394,7 +399,7 @@ code {
 .entry-item:hover { transform: translate(-1px, -1px); box-shadow: var(--sh); }
 .entry-item.active { background: var(--yellow-weak); box-shadow: var(--sh); }
 .entry-item-top { display: flex; align-items: center; gap: 0.4rem; }
-.entry-item-mood { font-size: 0.95rem; }
+.entry-item-mood { display: inline-flex; align-items: center; }
 .entry-item-date { font-family: var(--font-display); font-size: 0.7rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
 .entry-item-title { font-family: var(--font-display); font-weight: 600; margin-top: 0.1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .entry-item-preview { font-size: 0.82rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

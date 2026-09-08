@@ -67,6 +67,22 @@
   const moodEmoji = (k) => (moodOf(k) ? moodOf(k).emoji : "");
   const MOOD_SCORE = { great: 5, good: 4, meh: 3, down: 2, awful: 1 };
   const MOOD_COLOR = { great: "#16a34a", good: "#84cc16", meh: "#facc15", down: "#fb923c", awful: "#ef4444" };
+  // Custom flat mood faces (SVG) — outline uses currentColor (theme ink), fill = mood color.
+  function moodFace(key, size = 28) {
+    const color = MOOD_COLOR[key] || "var(--muted)";
+    const eyes = '<circle cx="14.5" cy="16.5" r="1.9" fill="currentColor"/><circle cx="25.5" cy="16.5" r="1.9" fill="currentColor"/>';
+    const mouths = {
+      great: '<path d="M12 22.5 Q20 32 28 22.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>',
+      good:  '<path d="M14 24 Q20 29 26 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>',
+      meh:   '<path d="M14.5 25 L25.5 25" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>',
+      down:  '<path d="M14 27 Q20 23 26 27" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>',
+      awful: '<path d="M13.5 28 Q20 20.5 26.5 28" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>',
+    };
+    return `<svg class="mood-face" viewBox="0 0 40 40" width="${size}" height="${size}" aria-hidden="true">`
+      + `<circle cx="20" cy="20" r="15" fill="${color}" stroke="currentColor" stroke-width="2.5"/>`
+      + eyes + (mouths[key] || mouths.meh) + `</svg>`;
+  }
+  function faceEl(key, size) { const s = el("span", { className: "mood-face-wrap" }); s.innerHTML = moodFace(key, size); return s; }
 
   // ---- Daily prompts --------------------------------------------------------
   const PROMPTS = [
@@ -247,8 +263,8 @@
         className: "mood-btn" + (curMood === m.key ? " active" : ""),
         type: "button",
         title: m.label,
-        textContent: m.emoji,
       });
+      b.innerHTML = moodFace(m.key, 30);
       b.addEventListener("click", () => {
         curMood = curMood === m.key ? "" : m.key;
         renderMoodRow();
@@ -324,7 +340,7 @@
       const row = byDate.get(ds);
       if (row) {
         cell.classList.add("has");
-        cell.append(el("span", { className: "cal-dot", textContent: moodEmoji(row.mood) || "•" }));
+        cell.append(el("span", { className: "cal-dot", style: `background:${MOOD_COLOR[row.mood] || "var(--ink)"};` }));
       }
       if (ds === today) cell.classList.add("today");
       if (ds === selectedDate) cell.classList.add("selected");
@@ -358,7 +374,9 @@
     for (const e of items) {
       const item = el("button", { className: "entry-item" + (e.entry_date === selectedDate ? " active" : ""), type: "button" });
       const top = el("div", { className: "entry-item-top" });
-      top.append(el("span", { className: "entry-item-mood", textContent: moodEmoji(e.mood) }));
+      const ms = el("span", { className: "entry-item-mood" });
+      if (e.mood) ms.innerHTML = moodFace(e.mood, 18);
+      top.append(ms);
       top.append(el("span", { className: "entry-item-date", textContent: shortDate(e.entry_date) }));
       item.append(top);
       item.append(el("div", { className: "entry-item-title", textContent: e.title || firstLine(e.content) || "(untitled)" }));
@@ -459,7 +477,11 @@
     statsEl.append(mk(entries.length, entries.length === 1 ? "Entry" : "Entries"));
     statsEl.append(mk(words, "Words"));
     statsEl.append(mk(avg, "Avg words"));
-    statsEl.append(mk(topMood ? moodEmoji(topMood) : "—", "Top mood", true));
+    const topStat = el("div", { className: "stat" });
+    const topNum = el("div", { className: "stat-num" });
+    if (topMood) topNum.append(faceEl(topMood, 30)); else topNum.textContent = "—";
+    topStat.append(topNum, el("div", { className: "stat-label", textContent: "Top mood" }));
+    statsEl.append(topStat);
 
     renderMoodChart(dates, today);
 
@@ -468,7 +490,7 @@
     if (present.length === 0) dist.append(el("span", { className: "empty-hint", textContent: "No moods logged this stretch." }));
     else for (const m of present) {
       const chip = el("div", { className: "dist-chip" });
-      chip.append(el("span", { className: "emoji", textContent: m.emoji }));
+      chip.append(faceEl(m.key, 20));
       chip.append(el("span", { textContent: `${m.label} · ${moodCounts[m.key]}` }));
       dist.append(chip);
     }
@@ -510,8 +532,8 @@
   function localSummary(entries, r) {
     const parts = [];
     parts.push(`You wrote ${entries.length} ${entries.length === 1 ? "entry" : "entries"} (${r.words} words, ~${r.avg} per entry) on ${r.daysWritten} of ${r.totalDays} days.`);
-    if (r.topMood) parts.push(`Your mood leaned ${moodEmoji(r.topMood)} ${moodOf(r.topMood).label.toLowerCase()}.`);
-    if (r.best) { const d = parseDate(r.best.entry_date); parts.push(`Your brightest day was ${DOW[d.getDay()]}, ${MON_SHORT[d.getMonth()]} ${d.getDate()} ${moodEmoji(r.best.mood)}${r.best.title ? ` — “${r.best.title}”` : ""}.`); }
+    if (r.topMood) parts.push(`Your mood leaned ${moodOf(r.topMood).label.toLowerCase()}.`);
+    if (r.best) { const d = parseDate(r.best.entry_date); parts.push(`Your brightest day was ${DOW[d.getDay()]}, ${MON_SHORT[d.getMonth()]} ${d.getDate()}${r.best.title ? ` — “${r.best.title}”` : ""}.`); }
     const streak = computeStreak();
     if (streak > 0) parts.push(`You're on a ${streak}-day streak — keep it going!`);
     const word = topWord(entries);
