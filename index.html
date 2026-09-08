@@ -60,6 +60,7 @@
       <div class="brand small"><span class="brand-mark">📖</span><span>Daily Pages</span></div>
       <div class="streak-badge" id="streak-badge" title="Current writing streak">🔥&nbsp;<span id="streak-num">0</span></div>
       <div class="spacer"></div>
+      <button id="insights-btn" class="icon-btn" type="button" title="Insights &amp; review">📊</button>
       <button id="theme-toggle" class="icon-btn" type="button" title="Toggle light / dark">🌙</button>
       <button id="export-btn" class="icon-btn" type="button" title="Export all entries (.md)">⬇️</button>
       <div class="user-menu">
@@ -121,6 +122,42 @@
         </div>
       </aside>
     </main>
+
+    <!-- Insights / review -->
+    <div id="insights-view" class="modal" hidden>
+      <div class="modal-card card">
+        <div class="modal-head">
+          <h2 id="insights-title" class="modal-title">Review</h2>
+          <button id="insights-close" class="icon-btn" type="button" title="Close">✕</button>
+        </div>
+        <div class="seg period-seg">
+          <button type="button" class="period-btn is-active" data-period="week">This Week</button>
+          <button type="button" class="period-btn" data-period="month">This Month</button>
+        </div>
+        <div class="modal-scroll">
+          <div id="insights-empty" class="empty-hint" hidden></div>
+          <div id="insights-content">
+            <div class="insights-stats" id="insights-stats"></div>
+            <div class="insights-section">
+              <h3 class="insights-h">Mood trend</h3>
+              <div class="mood-chart" id="mood-chart"></div>
+            </div>
+            <div class="insights-section">
+              <h3 class="insights-h">Mood mix</h3>
+              <div class="mood-dist" id="mood-dist"></div>
+            </div>
+            <div class="insights-section">
+              <h3 class="insights-h">Summary</h3>
+              <div class="summary-box" id="insights-summary"></div>
+              <div id="ai-summary-wrap" hidden>
+                <button id="ai-summary-btn" class="btn btn-primary" type="button">✨ Get an AI reflection</button>
+                <div id="ai-summary-out" class="summary-box ai" hidden></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div id="toast" class="toast" hidden></div>

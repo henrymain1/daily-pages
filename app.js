@@ -65,6 +65,8 @@
   ];
   const moodOf = (k) => MOODS.find((m) => m.key === k) || null;
   const moodEmoji = (k) => (moodOf(k) ? moodOf(k).emoji : "");
+  const MOOD_SCORE = { great: 5, good: 4, meh: 3, down: 2, awful: 1 };
+  const MOOD_COLOR = { great: "#16a34a", good: "#84cc16", meh: "#facc15", down: "#fb923c", awful: "#ef4444" };
 
   // ---- Daily prompts --------------------------------------------------------
   const PROMPTS = [
@@ -109,6 +111,7 @@
   let saveTimer = null;
   let dirty = false;
   let toastTimer = null;
+  let insightsPeriod = "week";
 
   // ---- Small UI helpers -----------------------------------------------------
   function toast(msg) {
@@ -392,6 +395,162 @@
     toast("Exported to a Markdown file.");
   }
 
+  // ---- Insights / review ----------------------------------------------------
+  function weekDates() {
+    const t = new Date();
+    const offset = (t.getDay() + 6) % 7; // days since Monday
+    const monday = new Date(t); monday.setDate(t.getDate() - offset);
+    return Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setDate(monday.getDate() + i); return ymd(d); });
+  }
+  function monthDates() {
+    const t = new Date(), y = t.getFullYear(), m = t.getMonth();
+    const n = new Date(y, m + 1, 0).getDate();
+    return Array.from({ length: n }, (_, i) => `${y}-${pad(m + 1)}-${pad(i + 1)}`);
+  }
+  function wordCount(s) { const v = (s || "").trim(); return v ? v.split(/\s+/).length : 0; }
+
+  function openInsights() { $("#insights-view").hidden = false; renderInsights(); }
+  function closeInsights() { $("#insights-view").hidden = true; }
+  function setPeriod(p) {
+    insightsPeriod = p;
+    $$(".period-btn").forEach((b) => b.classList.toggle("is-active", b.dataset.period === p));
+    renderInsights();
+  }
+
+  function renderInsights() {
+    const dates = insightsPeriod === "week" ? weekDates() : monthDates();
+    const first = parseDate(dates[0]);
+    $("#insights-title").textContent = insightsPeriod === "week"
+      ? `Week of ${MON_SHORT[first.getMonth()]} ${first.getDate()}`
+      : `${MON[first.getMonth()]} ${first.getFullYear()}`;
+
+    const today = todayStr();
+    const past = dates.filter((d) => d <= today);
+    const entries = past.map((d) => byDate.get(d)).filter(Boolean);
+
+    const empty = $("#insights-empty"), content = $("#insights-content");
+    if (entries.length === 0) {
+      empty.hidden = false;
+      empty.textContent = "No entries in this stretch yet. A blank page is a fresh start ✍️";
+      content.hidden = true;
+      return;
+    }
+    empty.hidden = true; content.hidden = false;
+
+    const words = entries.reduce((s, e) => s + wordCount(e.content), 0);
+    const avg = Math.round(words / entries.length);
+    const moodCounts = {};
+    let best = null;
+    for (const e of entries) {
+      if (e.mood && MOOD_SCORE[e.mood]) {
+        moodCounts[e.mood] = (moodCounts[e.mood] || 0) + 1;
+        if (!best || MOOD_SCORE[e.mood] >= MOOD_SCORE[best.mood]) best = e;
+      }
+    }
+    const topMood = Object.keys(moodCounts).sort((a, b) => moodCounts[b] - moodCounts[a] || MOOD_SCORE[b] - MOOD_SCORE[a])[0] || "";
+
+    const statsEl = $("#insights-stats"); statsEl.innerHTML = "";
+    const mk = (num, label, big) => {
+      const s = el("div", { className: "stat" });
+      s.append(el("div", { className: "stat-num", textContent: String(num), style: big ? "font-size:1.5rem;" : "" }));
+      s.append(el("div", { className: "stat-label", textContent: label }));
+      return s;
+    };
+    statsEl.append(mk(entries.length, entries.length === 1 ? "Entry" : "Entries"));
+    statsEl.append(mk(words, "Words"));
+    statsEl.append(mk(avg, "Avg words"));
+    statsEl.append(mk(topMood ? moodEmoji(topMood) : "—", "Top mood", true));
+
+    renderMoodChart(dates, today);
+
+    const dist = $("#mood-dist"); dist.innerHTML = "";
+    const present = MOODS.filter((m) => moodCounts[m.key]);
+    if (present.length === 0) dist.append(el("span", { className: "empty-hint", textContent: "No moods logged this stretch." }));
+    else for (const m of present) {
+      const chip = el("div", { className: "dist-chip" });
+      chip.append(el("span", { className: "emoji", textContent: m.emoji }));
+      chip.append(el("span", { textContent: `${m.label} · ${moodCounts[m.key]}` }));
+      dist.append(chip);
+    }
+
+    $("#insights-summary").textContent = localSummary(entries, { words, avg, topMood, best, daysWritten: entries.length, totalDays: past.length });
+
+    $("#ai-summary-wrap").hidden = !cfg.AI_SUMMARY_URL;
+    $("#ai-summary-out").hidden = true;
+  }
+
+  function renderMoodChart(dates, today) {
+    const chart = $("#mood-chart"); chart.innerHTML = "";
+    for (const ds of dates) {
+      const col = el("div", { className: "mood-col" });
+      const e = byDate.get(ds);
+      let h = 6, color = "var(--muted)";
+      if (e && e.mood && MOOD_SCORE[e.mood]) { h = 20 + MOOD_SCORE[e.mood] * 16; color = MOOD_COLOR[e.mood]; }
+      else if (e) { h = 16; color = "var(--surface)"; }
+      if (ds > today) col.classList.add("future");
+      const d = parseDate(ds);
+      col.title = `${MON_SHORT[d.getMonth()]} ${d.getDate()}` + (e ? (e.mood ? ` · ${moodOf(e.mood).label}` : " · entry") : " · no entry");
+      col.append(el("div", { className: "mood-fill", style: `height:${h}%; background:${color};` }));
+      chart.append(col);
+    }
+  }
+
+  const STOP = new Set(("the a an and or but if then else of to in on at for with without from by as is are was were be been being it its this that these those i you he she they we me my your his her their our not no yes so just really very much more most some any all can will would could should did do does done get got have has had about into over under out up down day today feel felt like know think went made make going time that's it's i'm was were then than them there here what when where which who").split(" "));
+  function topWord(entries) {
+    const freq = {};
+    for (const e of entries) {
+      const words = (e.content || "").toLowerCase().match(/[a-z']{4,}/g) || [];
+      for (let w of words) { w = w.replace(/'s$/, ""); if (STOP.has(w)) continue; freq[w] = (freq[w] || 0) + 1; }
+    }
+    let best = null, n = 0;
+    for (const w in freq) if (freq[w] > n) { n = freq[w]; best = w; }
+    return n >= 3 ? best : null;
+  }
+
+  function localSummary(entries, r) {
+    const parts = [];
+    parts.push(`You wrote ${entries.length} ${entries.length === 1 ? "entry" : "entries"} (${r.words} words, ~${r.avg} per entry) on ${r.daysWritten} of ${r.totalDays} days.`);
+    if (r.topMood) parts.push(`Your mood leaned ${moodEmoji(r.topMood)} ${moodOf(r.topMood).label.toLowerCase()}.`);
+    if (r.best) { const d = parseDate(r.best.entry_date); parts.push(`Your brightest day was ${DOW[d.getDay()]}, ${MON_SHORT[d.getMonth()]} ${d.getDate()} ${moodEmoji(r.best.mood)}${r.best.title ? ` — “${r.best.title}”` : ""}.`); }
+    const streak = computeStreak();
+    if (streak > 0) parts.push(`You're on a ${streak}-day streak — keep it going!`);
+    const word = topWord(entries);
+    if (word) parts.push(`A word that kept coming up: “${word}”.`);
+    return parts.join(" ");
+  }
+
+  async function generateAISummary() {
+    const url = cfg.AI_SUMMARY_URL;
+    if (!url) return;
+    const btn = $("#ai-summary-btn"), out = $("#ai-summary-out");
+    const label = btn.textContent;
+    btn.disabled = true; btn.textContent = "Reflecting…";
+    try {
+      const dates = insightsPeriod === "week" ? weekDates() : monthDates();
+      const today = todayStr();
+      const entries = dates.filter((d) => d <= today).map((d) => byDate.get(d)).filter(Boolean)
+        .map((e) => ({ date: e.entry_date, mood: e.mood, title: e.title, content: e.content }));
+      const { data: { session } } = await sb.auth.getSession();
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: cfg.SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${session ? session.access_token : cfg.SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ period: insightsPeriod, entries }),
+      });
+      if (!res.ok) throw new Error(`(${res.status})`);
+      const json = await res.json();
+      out.textContent = json.summary || "No summary returned.";
+      out.hidden = false;
+    } catch (err) {
+      toast("AI reflection failed " + (err.message || ""));
+    } finally {
+      btn.disabled = false; btn.textContent = label;
+    }
+  }
+
   // ---- App enter / exit -----------------------------------------------------
   async function enterApp(user) {
     if (currentUser && currentUser.id === user.id && !$("#app-view").hidden) return;
@@ -447,12 +606,20 @@
     $("#cal-prev").addEventListener("click", () => { calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() - 1, 1); renderCalendar(); });
     $("#cal-next").addEventListener("click", () => { calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() + 1, 1); renderCalendar(); });
 
+    // insights
+    $("#insights-btn").addEventListener("click", async () => { await maybeFlush(); openInsights(); });
+    $("#insights-close").addEventListener("click", closeInsights);
+    $("#insights-view").addEventListener("click", (e) => { if (e.target === $("#insights-view")) closeInsights(); });
+    $$(".period-btn").forEach((b) => b.addEventListener("click", () => setPeriod(b.dataset.period)));
+    $("#ai-summary-btn").addEventListener("click", generateAISummary);
+
     // shortcuts + safety
     document.addEventListener("keydown", (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
         if (currentUser) saveNow();
       }
+      if (e.key === "Escape" && !$("#insights-view").hidden) closeInsights();
     });
     window.addEventListener("beforeunload", () => { if (dirty) saveNow(); });
   }
