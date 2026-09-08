@@ -1,0 +1,9 @@
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+
+# Note: config.js is intentionally NOT ignored — the Supabase "anon" key is
+# public/safe to commit. Never put the service_role key in this project.

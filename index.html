@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daily Pages — your journal</title>
+  <meta name="description" content="A quiet place to write, one day at a time." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%96%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ============ Setup notice (shown until config.js is filled in) ============ -->
+  <div id="setup-notice" class="overlay" hidden>
+    <div class="card overlay-card">
+      <div class="brand"><span class="brand-mark">📖</span><span>Daily Pages</span></div>
+      <h1>Almost there!</h1>
+      <p class="muted">Add your Supabase keys to <code>config.js</code>, then refresh this page.</p>
+      <ol class="steps">
+        <li>Create a free project at <strong>supabase.com</strong>.</li>
+        <li>Run the SQL in <code>supabase-setup.sql</code> (SQL Editor → paste → Run).</li>
+        <li>Copy your <strong>Project URL</strong> and <strong>anon key</strong> (Settings → API) into <code>config.js</code>.</li>
+      </ol>
+      <p class="muted small">Full walkthrough is in <code>README.md</code>.</p>
+    </div>
+  </div>
+
+  <!-- ============ Auth ============ -->
+  <div id="auth-view" class="auth-wrap" hidden>
+    <form id="auth-form" class="card auth-card" autocomplete="on">
+      <div class="brand"><span class="brand-mark">📖</span><span>Daily Pages</span></div>
+      <p class="tagline">A quiet place to write, one day at a time.</p>
+
+      <div class="seg" role="tablist">
+        <button type="button" class="seg-btn is-active" data-mode="login">Log in</button>
+        <button type="button" class="seg-btn" data-mode="signup">Sign up</button>
+      </div>
+
+      <label class="field">
+        <span>Email</span>
+        <input id="email" type="email" required autocomplete="email" placeholder="you@example.com" />
+      </label>
+      <label class="field">
+        <span>Password</span>
+        <input id="password" type="password" required minlength="6" autocomplete="current-password" placeholder="••••••••" />
+      </label>
+
+      <button id="auth-submit" class="btn btn-primary btn-block" type="submit">Log in</button>
+      <p id="auth-msg" class="msg" hidden></p>
+    </form>
+    <button id="auth-theme" class="ghost-toggle" type="button" title="Toggle light / dark">🌙</button>
+  </div>
+
+  <!-- ============ App ============ -->
+  <div id="app-view" hidden>
+    <header class="topbar">
+      <div class="brand small"><span class="brand-mark">📖</span><span>Daily Pages</span></div>
+      <div class="streak-badge" id="streak-badge" title="Current writing streak">🔥&nbsp;<span id="streak-num">0</span></div>
+      <div class="spacer"></div>
+      <button id="theme-toggle" class="icon-btn" type="button" title="Toggle light / dark">🌙</button>
+      <button id="export-btn" class="icon-btn" type="button" title="Export all entries (.md)">⬇️</button>
+      <div class="user-menu">
+        <span id="user-email" class="user-email"></span>
+        <button id="logout-btn" class="btn btn-ghost" type="button">Log out</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <!-- Editor -->
+      <section class="editor-pane card">
+        <div class="editor-head">
+          <div class="editor-head-left">
+            <div id="entry-daylabel" class="entry-daylabel">Today</div>
+            <h2 id="entry-date" class="entry-date">—</h2>
+          </div>
+          <button id="back-today" class="btn btn-ghost" type="button" hidden>← Back to today</button>
+        </div>
+
+        <div id="prompt-chip" class="prompt-chip" hidden></div>
+
+        <div class="mood-block">
+          <span class="mood-label">How are you feeling?</span>
+          <div class="mood-row" id="mood-row"></div>
+        </div>
+
+        <input id="entry-title" class="entry-title" placeholder="Give the day a title (optional)" />
+        <textarea id="entry-content" class="entry-content" placeholder="How was your day? Start writing…"></textarea>
+
+        <div class="editor-foot">
+          <span id="wordcount" class="wordcount">0 words</span>
+          <span class="spacer"></span>
+          <span id="save-status" class="save-status"></span>
+          <button id="delete-btn" class="btn btn-danger" type="button" hidden>Delete</button>
+        </div>
+      </section>
+
+      <!-- Sidebar -->
+      <aside class="side">
+        <div class="card stats">
+          <div class="stat"><div class="stat-num" id="stat-streak">0</div><div class="stat-label">Day streak</div></div>
+          <div class="stat"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Entries</div></div>
+          <div class="stat"><div class="stat-num" id="stat-month">0</div><div class="stat-label">This month</div></div>
+        </div>
+
+        <div class="card calendar">
+          <div class="cal-head">
+            <button id="cal-prev" class="icon-btn" type="button" title="Previous month">‹</button>
+            <div id="cal-title" class="cal-title">—</div>
+            <button id="cal-next" class="icon-btn" type="button" title="Next month">›</button>
+          </div>
+          <div class="cal-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+          <div id="cal-grid" class="cal-grid"></div>
+        </div>
+
+        <div class="card entries">
+          <input id="search" class="search" type="search" placeholder="Search your entries…" />
+          <div id="entries-list" class="entries-list"></div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <!-- Supabase client (public CDN), then your config, then the app -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
