@@ -1,107 +1,79 @@
 # 📖 Daily Pages
 
-A calm, personal journaling website. Log in each day, write your entry, keep a
-streak going. Your entries are saved to the cloud so they're on every device.
+A calm, personal daily journal. Log in, write today's entry, and keep a streak
+going — your writing syncs to the cloud so it's on every device.
 
-- **Frontend:** plain HTML/CSS/JS — hosts free on **GitHub Pages**
-- **Login + database:** **Supabase** free tier (real email/password accounts)
-- **Privacy:** each account can only ever read its own entries (enforced by the
-  database via Row Level Security — not just the UI)
+**▶ Live:** https://henrymain1.github.io/daily-pages/
 
-### Features
-- Email/password sign-up & login
-- One entry per day, distraction-free writing area, **autosave**
-- Mood picker · a rotating **daily prompt** · live word count
-- 🔥 **streak** + stats (total entries, entries this month)
-- **Month calendar** — click any past day to read or edit it
-- **Search** across every entry
-- **Export** everything to a Markdown file
-- Light / dark theme (remembers your choice)
+Built as a static site (HTML/CSS/JS) hosted on **GitHub Pages**, with
+**Supabase** for accounts and storage. Visual theme: "Meadow" (sage green).
 
----
+## Features
+- Email/password login
+- One entry per day, distraction-free editor with autosave
+- Mood picker · a daily writing prompt · live word count
+- 🔥 streak + stats (entries, entries this month)
+- Month calendar to revisit or edit any past day
+- Search across all entries · export everything to Markdown
+- Light / dark theme
 
-## Setup (about 5–10 minutes, one time)
+## Is it secure? (short answer: yes)
+This trips people up, so it's worth spelling out:
 
-### 1. Create a free Supabase project
-1. Go to **[supabase.com](https://supabase.com)** → sign up → **New project**.
-2. Give it a name and a database password (you won't need the password again).
-3. Wait ~1 minute for it to finish provisioning.
+- `config.js` holds the Supabase **project URL** and **publishable key**. These
+  are **meant to be public**. Any static website has to send them to the browser
+  to talk to its backend — you can read them in the page source of *any*
+  deployed Supabase site. They are **not secrets**, so it's fine that they appear
+  in this public repo and in the site's source.
+- Your entries are protected by **Row Level Security** (see
+  [`supabase-setup.sql`](supabase-setup.sql)), **not** by hiding that key. Every
+  entry is stamped with your user id, and the database only ever lets a
+  logged-in account read or write *its own* rows. The publishable key on its own
+  — with no login — can't read anyone's data.
+- The **`service_role`** key (the one that bypasses security) is the real secret.
+  It is **not** in this repo, and must never be. Keep it out of the frontend.
+
+**Recommended hardening for a personal journal:** once your own account exists,
+turn off public sign-ups so no one else can register on your project —
+Supabase → **Authentication → Sign In / Providers** → **"Allow new users to
+sign up" → off**. Also make sure Row Level Security stays **on** for any new
+tables you add later.
+
+*(Making the repo private wouldn't add security — the key is exposed by the live
+site regardless — and it would break free GitHub Pages, which requires a public
+repo. So public is the right call here.)*
+
+## Set up your own copy
+<details>
+<summary>Expand — for forking / re-deploying from scratch</summary>
+
+### 1. Create a Supabase project
+Sign up at [supabase.com](https://supabase.com) → **New project**. Give it a name
+and a database password, pick a region, and wait ~1–2 min.
 
 ### 2. Create the database table
-1. In your project, open **SQL Editor** (left sidebar) → **New query**.
-2. Open `supabase-setup.sql` from this folder, copy **all** of it, paste it in.
-3. Click **Run**. You should see “Success”.
+Supabase → **SQL Editor** → **New query** → paste all of
+[`supabase-setup.sql`](supabase-setup.sql) → **Run**.
 
-### 3. (Recommended) Turn off email confirmation
-So you can log in instantly instead of waiting for a confirmation email:
-- **Authentication** → **Sign In / Providers** (or **Providers → Email**) →
-  turn **“Confirm email”** *off* → Save.
+### 3. (Optional) Turn off email confirmation
+For instant login: **Authentication → Sign In / Providers → Email →
+"Confirm email" → off**.
 
-*(For a private, personal journal this is fine. Leave it on if you prefer.)*
+### 4. Add your keys
+Copy your **Project URL** and **anon / publishable** key
+(Settings → API / Data API) into [`config.js`](config.js).
 
-### 4. Paste your keys into `config.js`
-1. In Supabase: **Settings (gear)** → **API**.
-2. Copy these two values into `config.js` in this folder:
-   - **Project URL** → `SUPABASE_URL`
-   - **Project API keys → `anon` / public** → `SUPABASE_ANON_KEY`
+### 5. Deploy
+Push to a GitHub repo → **Settings → Pages** → deploy from `main` (root) →
+visit your `username.github.io/repo` link.
 
-```js
-window.JOURNAL_CONFIG = {
-  SUPABASE_URL: "https://xxxxxxxx.supabase.co",
-  SUPABASE_ANON_KEY: "eyJhbGciOi...your anon key...",
-};
-```
-
-> ✅ The **anon** key is designed to be public — it's safe to commit and ship.
-> ❌ Never use the **service_role** key here.
-
-### 5. Try it locally
-Just open `index.html` in your browser. If your browser is fussy about local
-files, run a tiny local server from this folder instead:
-
-```bash
-python -m http.server 8000
-```
-
-Then visit **http://localhost:8000**. Sign up, and start writing.
-
----
-
-## Deploy to GitHub Pages
-
-1. Create a new repository on GitHub (e.g. `daily-pages`).
-2. Upload these files (or push with git — see below). Keep them at the repo root.
-3. In the repo: **Settings** → **Pages** → **Build and deployment** →
-   **Source: Deploy from a branch** → Branch: **main**, folder: **/ (root)** → **Save**.
-4. Wait ~1 minute, then visit **`https://YOUR-USERNAME.github.io/daily-pages/`**.
-
-Bookmark that URL — that's your journal. 🎉
-
-### Pushing with git (optional)
-```bash
-git init
-git add .
-git commit -m "Daily Pages journal"
-git branch -M main
-git remote add origin https://github.com/YOUR-USERNAME/daily-pages.git
-git push -u origin main
-```
-
----
-
-## Notes & tips
-- **One entry per day** is the model (clean streaks + calendar). Revisit/edit any
-  past day from the calendar or the entries list.
-- Entries autosave as you type; `Ctrl`/`Cmd`+`S` forces a save.
-- Want to change the mood options, prompts, or colors? They're all near the top
-  of `app.js` (moods + prompts) and in `styles.css` (the color variables).
-- Back up anytime with the **⬇️ Export** button (downloads all entries as Markdown).
+</details>
 
 ## Files
 | File | What it is |
 |------|------------|
 | `index.html` | Page structure |
-| `styles.css` | All styling / theme |
+| `styles.css` | Styling / "Meadow" theme |
 | `app.js` | App logic (auth, editor, calendar, export) |
-| `config.js` | **Your** Supabase URL + anon key |
-| `supabase-setup.sql` | Database table + security rules |
+| `config.js` | Supabase project URL + publishable key (public-safe) |
+| `supabase-setup.sql` | Database table + Row Level Security rules |
