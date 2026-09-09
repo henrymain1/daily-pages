@@ -185,6 +185,24 @@
     return `${h}:${pad(m)} ${ap}`;
   }
   function autoGrow(ta) { if (!ta) return; ta.style.height = "auto"; ta.style.height = Math.max(ta.scrollHeight, 24) + "px"; }
+  // Time label — shows the date too when the entry was written on a different day than the one it's filed under
+  function fmtStamp(ts, dayStr) {
+    if (!ts) return "Earlier";
+    const t = fmtTime(ts);
+    if (dayStr && ymd(new Date(ts)) !== dayStr) {
+      const d = new Date(ts);
+      return `${MON_SHORT[d.getMonth()]} ${d.getDate()} · ${t}`;
+    }
+    return t;
+  }
+  // Run a DOM change without the page jumping — keep the viewport anchored to the bottom content
+  function withScrollStable(fn) {
+    const y = window.scrollY;
+    const before = document.documentElement.scrollHeight;
+    fn();
+    const after = document.documentElement.scrollHeight;
+    window.scrollTo(0, Math.max(0, y + (after - before)));
+  }
 
   // ---- Auth mode toggle -----------------------------------------------------
   let authMode = "login";
@@ -273,11 +291,11 @@
 
   function addEntry(text) {
     text = (text || "").trim();
-    if (!text) return;
+    if (!text) return false;
     curSections.push({ ts: new Date().toISOString(), text });
     renderFeed();
     saveNow();
-    const feed = $("#entry-feed"); if (feed) feed.scrollTop = feed.scrollHeight;
+    return true;
   }
 
   // ---- Editor ---------------------------------------------------------------
@@ -334,11 +352,12 @@
     curSections.forEach((s, i) => {
       const item = el("div", { className: "feed-entry" });
       const head = el("div", { className: "feed-head" });
-      head.append(el("span", { className: "feed-time", textContent: s.ts ? fmtTime(s.ts) : "Earlier" }));
+      head.append(el("span", { className: "feed-time", textContent: fmtStamp(s.ts, selectedDate) }));
       const del = el("button", { className: "feed-del", type: "button", title: "Delete this entry", textContent: "✕" });
       del.addEventListener("click", () => {
         if (!confirm("Delete this entry?")) return;
-        curSections.splice(i, 1); renderFeed(); saveNow();
+        withScrollStable(() => { curSections.splice(i, 1); renderFeed(); });
+        saveNow();
       });
       head.append(del);
       const body = el("textarea", { className: "feed-text", value: s.text });
@@ -471,7 +490,7 @@
       md += `\n\n---\n\n## ${longDate(e.entry_date)}\n`;
       const mood = moodOf(e.mood);
       if (mood) md += `\n**Mood:** ${mood.emoji} ${mood.label}\n`;
-      for (const s of secs) md += `\n**${s.ts ? fmtTime(s.ts) : "Entry"}**\n\n${s.text}\n`;
+      for (const s of secs) md += `\n**${fmtStamp(s.ts, e.entry_date)}**\n\n${s.text}\n`;
     }
     const blob = new Blob([md], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
@@ -669,7 +688,7 @@
       day.append(h);
       for (const s of sectionsOf(d)) {
         const e = el("div", { className: "reader-entry" });
-        if (s.ts) e.append(el("div", { className: "reader-time", textContent: fmtTime(s.ts) }));
+        if (s.ts) e.append(el("div", { className: "reader-time", textContent: fmtStamp(s.ts, d.entry_date) }));
         e.append(el("div", { className: "reader-text", textContent: s.text }));
         day.append(e);
       }
@@ -870,8 +889,8 @@
     $("#compose-form").addEventListener("submit", (e) => {
       e.preventDefault();
       const inp = $("#compose-input");
-      addEntry(inp.value);
-      inp.value = ""; autoGrow(inp); inp.focus();
+      withScrollStable(() => { if (addEntry(inp.value)) { inp.value = ""; autoGrow(inp); } });
+      inp.focus({ preventScroll: true });
     });
     $("#compose-input").addEventListener("keydown", (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); $("#compose-form").requestSubmit(); }
