@@ -56,20 +56,28 @@
 
   <!-- ============ App ============ -->
   <div id="app-view" hidden>
-    <header class="topbar">
-      <div class="brand small"><span class="brand-mark">📖</span><span>Daily Pages</span></div>
-      <div class="streak-badge" id="streak-badge" title="Current writing streak">🔥&nbsp;<span id="streak-num">0</span></div>
-      <div class="spacer"></div>
-      <button id="insights-btn" class="icon-btn" type="button" title="Insights &amp; review">📊</button>
-      <button id="theme-toggle" class="icon-btn" type="button" title="Toggle light / dark">🌙</button>
-      <button id="export-btn" class="icon-btn" type="button" title="Export all entries (.md)">⬇️</button>
-      <div class="user-menu">
-        <span id="user-email" class="user-email"></span>
-        <button id="logout-btn" class="btn btn-ghost" type="button">Log out</button>
+    <header class="appbar">
+      <div class="topbar">
+        <div class="brand small"><span class="brand-mark">📖</span><span>Daily Pages</span></div>
+        <div class="streak-badge" id="streak-badge" title="Current writing streak">🔥&nbsp;<span id="streak-num">0</span></div>
+        <div class="spacer"></div>
+        <button id="insights-btn" class="icon-btn" type="button" title="Insights &amp; review">📊</button>
+        <button id="theme-toggle" class="icon-btn" type="button" title="Toggle light / dark">🌙</button>
+        <button id="export-btn" class="icon-btn" type="button" title="Export all entries (.md)">⬇️</button>
+        <div class="user-menu">
+          <span id="user-email" class="user-email"></span>
+          <button id="logout-btn" class="btn btn-ghost" type="button">Log out</button>
+        </div>
       </div>
+      <nav class="subnav">
+        <div class="view-nav" id="view-nav">
+          <button type="button" class="view-btn is-active" data-view="journal">Journal</button>
+          <button type="button" class="view-btn" data-view="planner">Planner</button>
+        </div>
+      </nav>
     </header>
 
-    <main class="layout">
+    <main id="journal-view" class="layout">
       <!-- Editor -->
       <section class="editor-pane card">
         <div class="editor-head">
@@ -121,6 +129,36 @@
           <div id="entries-list" class="entries-list"></div>
         </div>
       </aside>
+    </main>
+
+    <!-- Planner (distinct page) -->
+    <main id="planner-view" class="planner" hidden>
+      <section class="planner-pane card">
+        <div class="planner-head">
+          <div>
+            <div class="entry-daylabel">Today's plan</div>
+            <h2 id="plan-date" class="entry-date">—</h2>
+          </div>
+          <span id="plan-progress" class="plan-progress" hidden></span>
+        </div>
+
+        <div id="plan-setup" class="plan-setup" hidden></div>
+
+        <div id="plan-body">
+          <label class="plan-focus-label" for="plan-focus">🎯 Today's focus</label>
+          <input id="plan-focus" class="plan-focus" placeholder="The one thing that matters most today…" />
+
+          <div class="plan-todo-head">
+            <span class="plan-h">To-do</span>
+            <span id="plan-save-status" class="save-status"></span>
+          </div>
+          <div id="plan-list" class="plan-list"></div>
+          <form id="plan-add-form" class="plan-add">
+            <input id="plan-add-input" class="plan-add-input" placeholder="Add a task and press Enter…" autocomplete="off" />
+            <button class="btn btn-primary plan-add-btn" type="submit">Add</button>
+          </form>
+        </div>
+      </section>
     </main>
 
     <!-- Insights / review -->

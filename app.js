@@ -128,6 +128,13 @@
   let dirty = false;
   let toastTimer = null;
   let insightsPeriod = "week";
+  let currentView = "journal";
+  let planDate = todayStr();
+  let planFocus = "";
+  let planItems = [];        // [{ id, text, done }]
+  let planLoaded = false;
+  let planDirty = false;
+  let planSaveTimer = null;
 
   // ---- Small UI helpers -----------------------------------------------------
   function toast(msg) {
@@ -573,6 +580,113 @@
     }
   }
 
+  // ---- Planner --------------------------------------------------------------
+  const uid = () => (window.crypto && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+
+  async function switchView(view) {
+    if (view === currentView) return;
+    if (currentView === "journal") await maybeFlush();
+    if (currentView === "planner") await savePlanNow();
+    currentView = view;
+    try { localStorage.setItem("dp-view", view); } catch (e) {}
+    $$(".view-btn").forEach((b) => b.classList.toggle("is-active", b.dataset.view === view));
+    $("#journal-view").hidden = view !== "journal";
+    $("#planner-view").hidden = view !== "planner";
+    if (view === "planner") await ensurePlan();
+  }
+
+  async function ensurePlan() {
+    if (!planLoaded || planDate !== todayStr()) {
+      planDate = todayStr();
+      await loadPlan();
+    }
+    renderPlanner();
+  }
+
+  async function loadPlan() {
+    planFocus = ""; planItems = []; planLoaded = false;
+    const { data, error } = await sb.from("plans").select("*").eq("plan_date", planDate).maybeSingle();
+    if (error) {
+      const info = `${error.message || ""} ${error.code || ""} ${error.details || ""}`;
+      if (/plans|schema cache|does not exist|42P01|PGRST2\d\d/i.test(info)) {
+        $("#plan-body").hidden = true;
+        const s = $("#plan-setup"); s.hidden = false;
+        s.innerHTML = "<strong>One quick setup step 🛠️</strong><br>The planner needs a small database table. In Supabase → <strong>SQL Editor</strong>, paste &amp; run the SQL from <code>supabase-planner.sql</code>, then reload this page.";
+      } else {
+        toast("Couldn't load your plan: " + error.message);
+      }
+      return;
+    }
+    $("#plan-setup").hidden = true; $("#plan-body").hidden = false;
+    if (data) { planFocus = data.focus || ""; planItems = Array.isArray(data.items) ? data.items : []; }
+    planLoaded = true;
+  }
+
+  function renderPlanner() {
+    $("#plan-date").textContent = longDate(planDate);
+    $("#plan-focus").value = planFocus;
+    renderPlanList();
+    updatePlanProgress();
+    const has = planLoaded && (planFocus.trim() || planItems.length);
+    setPlanStatus(has ? "Saved" : "", !!has);
+  }
+
+  function renderPlanList() {
+    const list = $("#plan-list"); list.innerHTML = "";
+    if (planItems.length === 0) {
+      list.append(el("div", { className: "plan-empty", textContent: "No tasks yet — add your first one below." }));
+      return;
+    }
+    for (const it of planItems) {
+      const row = el("div", { className: "plan-item" + (it.done ? " done" : "") });
+      const cb = el("button", { className: "plan-check" + (it.done ? " checked" : ""), type: "button", title: it.done ? "Mark not done" : "Mark done" });
+      cb.addEventListener("click", () => { it.done = !it.done; schedulePlanSave(); renderPlanList(); updatePlanProgress(); });
+      const txt = el("input", { className: "plan-text", value: it.text });
+      txt.addEventListener("input", () => { it.text = txt.value; schedulePlanSave(); });
+      const del = el("button", { className: "plan-del", type: "button", title: "Delete task", textContent: "✕" });
+      del.addEventListener("click", () => { planItems = planItems.filter((x) => x !== it); schedulePlanSave(); renderPlanList(); updatePlanProgress(); });
+      row.append(cb, txt, del);
+      list.append(row);
+    }
+  }
+
+  function updatePlanProgress() {
+    const total = planItems.length;
+    const done = planItems.filter((i) => i.done).length;
+    const p = $("#plan-progress");
+    p.hidden = total === 0;
+    p.textContent = total ? `${done} / ${total} done` : "";
+  }
+
+  function addTask(text) {
+    text = (text || "").trim();
+    if (!text) return;
+    planItems.push({ id: uid(), text, done: false });
+    schedulePlanSave(); renderPlanList(); updatePlanProgress();
+  }
+
+  function setPlanStatus(text, saved) {
+    const s = $("#plan-save-status"); if (!s) return;
+    s.textContent = text; s.classList.toggle("saved", !!saved);
+  }
+
+  function schedulePlanSave() {
+    planDirty = true; setPlanStatus("Saving…", false);
+    clearTimeout(planSaveTimer); planSaveTimer = setTimeout(savePlanNow, 700);
+  }
+
+  async function savePlanNow() {
+    clearTimeout(planSaveTimer);
+    if (!currentUser || !planLoaded) { planDirty = false; return; }
+    const focus = $("#plan-focus") ? $("#plan-focus").value : planFocus;
+    planFocus = focus;
+    if (!focus.trim() && planItems.length === 0) { planDirty = false; setPlanStatus(""); return; }
+    const row = { user_id: currentUser.id, plan_date: planDate, focus, items: planItems, updated_at: new Date().toISOString() };
+    const { error } = await sb.from("plans").upsert(row, { onConflict: "user_id,plan_date" });
+    if (error) { setPlanStatus("Save failed", false); toast("Plan save failed: " + error.message); return; }
+    planDirty = false; setPlanStatus("Saved ✓", true);
+  }
+
   // ---- App enter / exit -----------------------------------------------------
   async function enterApp(user) {
     if (currentUser && currentUser.id === user.id && !$("#app-view").hidden) return;
@@ -588,13 +702,20 @@
     await loadEntries();
     renderStats();
     openEditor(todayStr()); // also renders calendar + list
-    $("#entry-content").focus();
+    let lastView = "journal";
+    try { lastView = localStorage.getItem("dp-view") || "journal"; } catch (e) {}
+    if (lastView === "planner") await switchView("planner");
+    else $("#entry-content").focus();
   }
 
   function showAuth() {
     currentUser = null;
     allEntries = [];
     byDate.clear();
+    planItems = []; planFocus = ""; planLoaded = false; planDirty = false; currentView = "journal";
+    $("#journal-view").hidden = false;
+    $("#planner-view").hidden = true;
+    $$(".view-btn").forEach((b) => b.classList.toggle("is-active", b.dataset.view === "journal"));
     $("#app-view").hidden = true;
     $("#setup-notice").hidden = true;
     $("#auth-view").hidden = false;
@@ -635,15 +756,20 @@
     $$(".period-btn").forEach((b) => b.addEventListener("click", () => setPeriod(b.dataset.period)));
     $("#ai-summary-btn").addEventListener("click", generateAISummary);
 
+    // planner
+    $$(".view-btn").forEach((b) => b.addEventListener("click", () => switchView(b.dataset.view)));
+    $("#plan-focus").addEventListener("input", () => { planFocus = $("#plan-focus").value; schedulePlanSave(); });
+    $("#plan-add-form").addEventListener("submit", (e) => { e.preventDefault(); const inp = $("#plan-add-input"); addTask(inp.value); inp.value = ""; inp.focus(); });
+
     // shortcuts + safety
     document.addEventListener("keydown", (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
-        if (currentUser) saveNow();
+        if (currentUser) (currentView === "planner" ? savePlanNow() : saveNow());
       }
       if (e.key === "Escape" && !$("#insights-view").hidden) closeInsights();
     });
-    window.addEventListener("beforeunload", () => { if (dirty) saveNow(); });
+    window.addEventListener("beforeunload", () => { if (dirty) saveNow(); if (planDirty) savePlanNow(); });
   }
 
   async function onAuthSubmit(ev) {

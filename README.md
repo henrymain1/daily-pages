@@ -6,12 +6,14 @@ going — your writing syncs to the cloud so it's on every device.
 **▶ Live:** https://henrymain1.github.io/daily-pages/
 
 Built as a static site (HTML/CSS/JS) hosted on **GitHub Pages**, with
-**Supabase** for accounts and storage. Visual theme: "Meadow" (sage green).
+**Supabase** for accounts and storage. Bold neo-brutalist "Almanac" look.
 
 ## Features
 - Email/password login
 - One entry per day, distraction-free editor with autosave
 - Mood picker · a daily writing prompt · live word count
+- **Planner page** — a daily focus + a checkable to-do list (its own page)
+- **Insights** — mood trends and a week/month review with a summary
 - 🔥 streak + stats (entries, entries this month)
 - Month calendar to revisit or edit any past day
 - Search across all entries · export everything to Markdown
@@ -51,9 +53,11 @@ repo. So public is the right call here.)*
 Sign up at [supabase.com](https://supabase.com) → **New project**. Give it a name
 and a database password, pick a region, and wait ~1–2 min.
 
-### 2. Create the database table
+### 2. Create the database tables
 Supabase → **SQL Editor** → **New query** → paste all of
-[`supabase-setup.sql`](supabase-setup.sql) → **Run**.
+[`supabase-setup.sql`](supabase-setup.sql) → **Run**. Then run
+[`supabase-planner.sql`](supabase-planner.sql) the same way to enable the
+planner page.
 
 ### 3. (Optional) Turn off email confirmation
 For instant login: **Authentication → Sign In / Providers → Email →
@@ -73,7 +77,8 @@ visit your `username.github.io/repo` link.
 | File | What it is |
 |------|------------|
 | `index.html` | Page structure |
-| `styles.css` | Styling / "Meadow" theme |
-| `app.js` | App logic (auth, editor, calendar, export) |
+| `styles.css` | Styling / neo-brutalist "Almanac" theme |
+| `app.js` | App logic (auth, editor, planner, calendar, insights, export) |
 | `config.js` | Supabase project URL + publishable key (public-safe) |
-| `supabase-setup.sql` | Database table + Row Level Security rules |
+| `supabase-setup.sql` | Journal table (`entries`) + Row Level Security |
+| `supabase-planner.sql` | Planner table (`plans`) + Row Level Security |
