@@ -58,23 +58,21 @@
   <div id="app-view" hidden>
     <header class="appbar">
       <div class="topbar">
-        <div class="brand small"><span class="brand-mark">📖</span><span>Daily Pages</span></div>
-        <div class="streak-badge" id="streak-badge" title="Current writing streak">🔥&nbsp;<span id="streak-num">0</span></div>
+        <div class="brand small"><span class="brand-mark">📖</span><span class="brand-name">Daily Pages</span></div>
+        <nav class="view-nav" id="view-nav">
+          <button type="button" class="view-btn is-active" data-view="journal">Journal</button>
+          <button type="button" class="view-btn" data-view="planner">Planner</button>
+        </nav>
         <div class="spacer"></div>
+        <div class="streak-badge" id="streak-badge" title="Current writing streak">🔥&nbsp;<span id="streak-num">0</span></div>
         <button id="insights-btn" class="icon-btn" type="button" title="Insights &amp; review">📊</button>
-        <button id="theme-toggle" class="icon-btn" type="button" title="Toggle light / dark">🌙</button>
         <button id="export-btn" class="icon-btn" type="button" title="Export all entries (.md)">⬇️</button>
+        <button id="theme-toggle" class="icon-btn" type="button" title="Toggle light / dark">🌙</button>
         <div class="user-menu">
-          <span id="user-email" class="user-email"></span>
+          <div id="user-avatar" class="avatar" title=""></div>
           <button id="logout-btn" class="btn btn-ghost" type="button">Log out</button>
         </div>
       </div>
-      <nav class="subnav">
-        <div class="view-nav" id="view-nav">
-          <button type="button" class="view-btn is-active" data-view="journal">Journal</button>
-          <button type="button" class="view-btn" data-view="planner">Planner</button>
-        </div>
-      </nav>
     </header>
 
     <main id="journal-view" class="layout">

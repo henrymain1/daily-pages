@@ -251,18 +251,17 @@ code {
 
 /* ---------- Topbar ---------- */
 .appbar { position: sticky; top: 0; z-index: 10; background: var(--surface); border-bottom: var(--bw) solid var(--ink); }
-.topbar {
-  display: flex; align-items: center; gap: 0.6rem;
-  padding: 0.7rem 1.1rem;
-}
-.subnav { display: flex; justify-content: center; padding: 0 1.1rem 0.7rem; }
-.view-nav { display: inline-flex; gap: 5px; background: var(--surface-2); border: 2px solid var(--ink); border-radius: 999px; padding: 4px; }
+.topbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.55rem; padding: 0.6rem 1.1rem; }
+.topbar .spacer { flex: 1 1 auto; }
+.view-nav { display: inline-flex; gap: 4px; background: var(--surface-2); border: 2px solid var(--ink); border-radius: 999px; padding: 3px; margin-left: 0.4rem; }
 .view-btn {
-  font-family: var(--font-display); font-weight: 600; font-size: 0.92rem;
-  padding: 0.42rem 1.05rem; border: 2px solid transparent; background: transparent;
+  font-family: var(--font-display); font-weight: 600; font-size: 0.9rem;
+  padding: 0.38rem 0.95rem; border: 2px solid transparent; background: transparent;
   color: var(--muted); border-radius: 999px; cursor: pointer; transition: all 0.12s ease;
 }
+.view-btn:hover { color: var(--ink); }
 .view-btn.is-active { background: var(--yellow); color: #17161c; border-color: var(--ink); }
+.avatar { width: 34px; height: 34px; flex: none; border-radius: 50%; border: 2px solid var(--ink); background: var(--primary); color: var(--primary-ink); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; box-shadow: var(--sh); }
 .streak-badge {
   display: inline-flex; align-items: center;
   font-family: var(--font-display);
@@ -458,7 +457,16 @@ code {
 .plan-todo-head { display: flex; align-items: center; justify-content: space-between; margin: 1.7rem 0 0.7rem; }
 .plan-h { font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 700; }
 .plan-list { display: flex; flex-direction: column; gap: 0.5rem; }
-.plan-item { display: flex; align-items: center; gap: 0.55rem; border: 2px solid var(--ink); border-radius: var(--radius-sm); background: var(--surface); padding: 0.35rem 0.45rem; box-shadow: var(--sh); }
+.plan-task-group { border: 2px solid var(--ink); border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--sh); padding: 0.4rem 0.5rem; }
+.plan-item { display: flex; align-items: center; gap: 0.55rem; }
+.plan-subadd-btn { flex: none; border: none; background: transparent; color: var(--muted); cursor: pointer; font-family: var(--font-display); font-weight: 800; font-size: 1.05rem; line-height: 1; padding: 0.15rem 0.4rem; border-radius: 6px; }
+.plan-subadd-btn:hover { color: var(--primary); background: var(--surface-2); }
+.plan-subs { display: flex; flex-direction: column; gap: 0.35rem; margin: 0.45rem 0 0.15rem 34px; }
+.plan-sub { display: flex; align-items: center; gap: 0.5rem; }
+.plan-sub.done .plan-text { text-decoration: line-through; color: var(--muted); }
+.plan-check.sub { width: 20px; height: 20px; border-radius: 6px; }
+.plan-check.sub.checked::after { font-size: 0.78rem; }
+.plan-text.sub { font-size: 0.92rem; }
 .plan-check { flex: none; width: 26px; height: 26px; border: 2px solid var(--ink); border-radius: 7px; background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; }
 .plan-check.checked { background: var(--primary); }
 .plan-check.checked::after { content: "✓"; color: var(--primary-ink); font-family: var(--font-display); font-weight: 800; font-size: 0.95rem; }
@@ -491,9 +499,10 @@ code {
   .modal-scroll { padding: 1rem; }
   .insights-stats { grid-template-columns: repeat(2, 1fr); }
   .mood-chart { height: 120px; }
-  .subnav { padding: 0 0.75rem 0.6rem; }
-  .view-nav { width: 100%; }
+  .view-nav { order: 5; flex-basis: 100%; margin-left: 0; }
   .view-btn { flex: 1; }
+  .streak-badge { display: none; }
+  #export-btn { display: none; }
   .planner { padding: 1.2rem 0.9rem 2.5rem; }
   .planner-pane { padding: 1.3rem 1.2rem; }
 }

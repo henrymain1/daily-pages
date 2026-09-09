@@ -66,21 +66,26 @@
   const moodOf = (k) => MOODS.find((m) => m.key === k) || null;
   const moodEmoji = (k) => (moodOf(k) ? moodOf(k).emoji : "");
   const MOOD_SCORE = { great: 5, good: 4, meh: 3, down: 2, awful: 1 };
-  const MOOD_COLOR = { great: "#16a34a", good: "#84cc16", meh: "#facc15", down: "#fb923c", awful: "#ef4444" };
-  // Custom flat mood faces (SVG) — outline uses currentColor (theme ink), fill = mood color.
+  const MOOD_COLOR = { great: "#54bd62", good: "#8ece6c", meh: "#f4cf4f", down: "#f0a24b", awful: "#ec6a6a" };
+  const MOOD_LIGHT = { great: "#82d67e", good: "#b6e28f", meh: "#ffe07e", down: "#f8c07f", awful: "#f6a3a3" };
+  // Expressive mood faces (rounded-square, subtle gradient, features in currentColor/theme ink).
   function moodFace(key, size = 28) {
-    const color = MOOD_COLOR[key] || "var(--muted)";
-    const eyes = '<circle cx="14.5" cy="16.5" r="1.9" fill="currentColor"/><circle cx="25.5" cy="16.5" r="1.9" fill="currentColor"/>';
-    const mouths = {
-      great: '<path d="M12 22.5 Q20 32 28 22.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>',
-      good:  '<path d="M14 24 Q20 29 26 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>',
-      meh:   '<path d="M14.5 25 L25.5 25" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>',
-      down:  '<path d="M14 27 Q20 23 26 27" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>',
-      awful: '<path d="M13.5 28 Q20 20.5 26.5 28" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>',
+    const base = MOOD_COLOR[key] || "var(--muted)";
+    const light = MOOD_LIGHT[key] || base;
+    const gid = "mf" + Math.random().toString(36).slice(2, 8);
+    const dots = '<circle cx="14.8" cy="16.8" r="1.9" fill="currentColor"/><circle cx="25.2" cy="16.8" r="1.9" fill="currentColor"/>';
+    const spark = '<g stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M27 11 l2.3 -2.3"/><path d="M30 12.4 l2.3 -2.3"/><path d="M28.2 14 l1.9 -1.9"/></g>';
+    const F = {
+      great: '<path d="M11 17.6 Q14.5 14 18 17.6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M22 17.6 Q25.5 14 29 17.6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M13.5 23.5 Q20 31.5 26.5 23.5 Z" fill="currentColor"/>' + spark,
+      good:  dots + '<path d="M14 24 Q20 28.8 26 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>' + spark,
+      meh:   dots + '<path d="M14.5 25.5 L25.5 25.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>',
+      down:  dots + '<path d="M11.6 15 L16.6 13.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M28.4 15 L23.4 13.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M14 27.6 Q20 23.4 26 27.6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>',
+      awful: '<path d="M12 14.8 L16 16.8 L12 18.8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M28 14.8 L24 16.8 L28 18.8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.5 28 Q20 22 26.5 28" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>' + spark,
     };
     return `<svg class="mood-face" viewBox="0 0 40 40" width="${size}" height="${size}" aria-hidden="true">`
-      + `<circle cx="20" cy="20" r="15" fill="${color}" stroke="currentColor" stroke-width="2.5"/>`
-      + eyes + (mouths[key] || mouths.meh) + `</svg>`;
+      + `<defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${light}"/><stop offset="1" stop-color="${base}"/></linearGradient></defs>`
+      + `<rect x="4" y="4" width="32" height="32" rx="9.5" fill="url(#${gid})" stroke="currentColor" stroke-width="2.6"/>`
+      + (F[key] || F.meh) + `</svg>`;
   }
   function faceEl(key, size) { const s = el("span", { className: "mood-face-wrap" }); s.innerHTML = moodFace(key, size); return s; }
 
@@ -638,16 +643,44 @@
       return;
     }
     for (const it of planItems) {
+      if (!Array.isArray(it.subs)) it.subs = [];
+      const group = el("div", { className: "plan-task-group" });
+
       const row = el("div", { className: "plan-item" + (it.done ? " done" : "") });
       const cb = el("button", { className: "plan-check" + (it.done ? " checked" : ""), type: "button", title: it.done ? "Mark not done" : "Mark done" });
       cb.addEventListener("click", () => { it.done = !it.done; schedulePlanSave(); renderPlanList(); updatePlanProgress(); });
-      const txt = el("input", { className: "plan-text", value: it.text });
+      const txt = el("input", { className: "plan-text", value: it.text, placeholder: "Task…" });
       txt.addEventListener("input", () => { it.text = txt.value; schedulePlanSave(); });
+      const addSub = el("button", { className: "plan-subadd-btn", type: "button", title: "Add subtask", textContent: "＋" });
+      addSub.addEventListener("click", () => { it.subs.push({ id: uid(), text: "", done: false }); schedulePlanSave(); renderPlanList(); focusSub(it.id, it.subs.length - 1); });
       const del = el("button", { className: "plan-del", type: "button", title: "Delete task", textContent: "✕" });
       del.addEventListener("click", () => { planItems = planItems.filter((x) => x !== it); schedulePlanSave(); renderPlanList(); updatePlanProgress(); });
-      row.append(cb, txt, del);
-      list.append(row);
+      row.append(cb, txt, addSub, del);
+      group.append(row);
+
+      if (it.subs.length) {
+        const subWrap = el("div", { className: "plan-subs" });
+        it.subs.forEach((s, si) => {
+          const srow = el("div", { className: "plan-sub" + (s.done ? " done" : "") });
+          const scb = el("button", { className: "plan-check sub" + (s.done ? " checked" : ""), type: "button", title: s.done ? "Mark not done" : "Mark done" });
+          scb.addEventListener("click", () => { s.done = !s.done; schedulePlanSave(); renderPlanList(); });
+          const stxt = el("input", { className: "plan-text sub", value: s.text, placeholder: "Subtask…" });
+          stxt.dataset.parent = it.id; stxt.dataset.idx = String(si);
+          stxt.addEventListener("input", () => { s.text = stxt.value; schedulePlanSave(); });
+          const sdel = el("button", { className: "plan-del", type: "button", title: "Delete subtask", textContent: "✕" });
+          sdel.addEventListener("click", () => { it.subs = it.subs.filter((x) => x !== s); schedulePlanSave(); renderPlanList(); });
+          srow.append(scb, stxt, sdel);
+          subWrap.append(srow);
+        });
+        group.append(subWrap);
+      }
+      list.append(group);
     }
+  }
+
+  function focusSub(parentId, idx) {
+    const node = document.querySelector(`.plan-text.sub[data-parent="${parentId}"][data-idx="${idx}"]`);
+    if (node) node.focus();
   }
 
   function updatePlanProgress() {
@@ -694,7 +727,9 @@
     $("#auth-view").hidden = true;
     $("#setup-notice").hidden = true;
     $("#app-view").hidden = false;
-    $("#user-email").textContent = user.email || "";
+    const initial = ((user.email || "?").trim().charAt(0) || "?").toUpperCase();
+    $("#user-avatar").textContent = initial;
+    $("#user-avatar").title = user.email || "";
     applyTheme(currentTheme());
 
     calCursor = new Date();
