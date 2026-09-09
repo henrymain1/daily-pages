@@ -590,13 +590,17 @@
 
   async function switchView(view) {
     if (view === currentView) return;
-    if (currentView === "journal") await maybeFlush();
-    if (currentView === "planner") await savePlanNow();
+    const prev = currentView;
     currentView = view;
     try { localStorage.setItem("dp-view", view); } catch (e) {}
-    $$(".view-btn").forEach((b) => b.classList.toggle("is-active", b.dataset.view === view));
+    // flip the toggle + swap views immediately so the pill animates right away
+    const tog = $("#view-toggle");
+    if (tog) { tog.dataset.view = view; tog.setAttribute("aria-checked", view === "planner" ? "true" : "false"); }
     $("#journal-view").hidden = view !== "journal";
     $("#planner-view").hidden = view !== "planner";
+    // then persist the page we left and load the one we entered
+    if (prev === "journal") await maybeFlush();
+    if (prev === "planner") await savePlanNow();
     if (view === "planner") await ensurePlan();
   }
 
@@ -750,7 +754,7 @@
     planItems = []; planFocus = ""; planLoaded = false; planDirty = false; currentView = "journal";
     $("#journal-view").hidden = false;
     $("#planner-view").hidden = true;
-    $$(".view-btn").forEach((b) => b.classList.toggle("is-active", b.dataset.view === "journal"));
+    { const tog = $("#view-toggle"); if (tog) { tog.dataset.view = "journal"; tog.setAttribute("aria-checked", "false"); } }
     $("#app-view").hidden = true;
     $("#setup-notice").hidden = true;
     $("#auth-view").hidden = false;
@@ -792,7 +796,7 @@
     $("#ai-summary-btn").addEventListener("click", generateAISummary);
 
     // planner
-    $$(".view-btn").forEach((b) => b.addEventListener("click", () => switchView(b.dataset.view)));
+    $("#view-toggle").addEventListener("click", () => switchView(currentView === "journal" ? "planner" : "journal"));
     $("#plan-focus").addEventListener("input", () => { planFocus = $("#plan-focus").value; schedulePlanSave(); });
     $("#plan-add-form").addEventListener("submit", (e) => { e.preventDefault(); const inp = $("#plan-add-input"); addTask(inp.value); inp.value = ""; inp.focus(); });
 
