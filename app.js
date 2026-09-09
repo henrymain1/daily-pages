@@ -128,6 +128,8 @@
   let byDate = new Map();         // entry_date -> row
   let selectedDate = todayStr();
   let curMood = "";
+  let curSections = [];           // [{ ts, text }] for the currently open day
+  let readerMode = false;
   let calCursor = new Date();     // any date within the displayed month
   let saveTimer = null;
   let dirty = false;
@@ -162,11 +164,27 @@
   }
   function hideMsg() { $("#auth-msg").hidden = true; }
   function firstLine(s) { return (s || "").split("\n").map((x) => x.trim()).find(Boolean) || ""; }
-  function updateWordCount() {
-    const v = $("#entry-content").value.trim();
-    const n = v ? v.split(/\s+/).length : 0;
-    $("#wordcount").textContent = `${n} ${n === 1 ? "word" : "words"}`;
+
+  // ---- Journal entries: a day's content is a JSON list of { ts, text } sections
+  function sectionsOf(row) {
+    if (!row) return [];
+    const c = row.content;
+    if (typeof c !== "string") return [];
+    const t = c.trim();
+    if (!t) return [];
+    if (t[0] === "[") { try { const a = JSON.parse(t); if (Array.isArray(a)) return a; } catch (e) {} }
+    return [{ ts: null, text: c }]; // legacy single-blob entry
   }
+  function dayText(row) { return sectionsOf(row).map((s) => s.text).join("\n\n"); }
+  function dayWordCount(row) { const t = dayText(row).trim(); return t ? t.split(/\s+/).length : 0; }
+  function hasEntry(ds) { const r = byDate.get(ds); return !!(r && sectionsOf(r).length > 0); }
+  function fmtTime(ts) {
+    if (!ts) return "";
+    const d = new Date(ts); let h = d.getHours(); const m = d.getMinutes();
+    const ap = h < 12 ? "AM" : "PM"; h = h % 12 || 12;
+    return `${h}:${pad(m)} ${ap}`;
+  }
+  function autoGrow(ta) { if (!ta) return; ta.style.height = "auto"; ta.style.height = Math.max(ta.scrollHeight, 24) + "px"; }
 
   // ---- Auth mode toggle -----------------------------------------------------
   let authMode = "login";
@@ -203,24 +221,28 @@
   async function saveNow() {
     clearTimeout(saveTimer);
     if (!currentUser) return;
-    const title = $("#entry-title").value.trim();
-    const content = $("#entry-content").value;
-    const mood = curMood;
     const existing = byDate.get(selectedDate);
-    const empty = !title && !content.trim() && !mood;
+    const empty = curSections.length === 0 && !curMood;
 
     if (empty) {
       dirty = false;
-      setSaveStatus(existing ? "Saved" : "", !!existing);
+      if (existing) {
+        // the day is now blank — remove its row
+        await sb.from("entries").delete().eq("id", existing.id);
+        byDate.delete(selectedDate);
+        allEntries = allEntries.filter((e) => e.id !== existing.id);
+        renderStats(); renderCalendar(); renderList();
+      }
+      setSaveStatus("");
       return;
     }
 
     const row = {
       user_id: currentUser.id,
       entry_date: selectedDate,
-      title,
-      content,
-      mood,
+      title: "",
+      content: JSON.stringify(curSections),
+      mood: curMood,
       updated_at: new Date().toISOString(),
     };
     const { data, error } = await sb
@@ -244,26 +266,18 @@
     }
     dirty = false;
     setSaveStatus("Saved ✓", true);
-    $("#delete-btn").hidden = false;
     renderStats();
     renderCalendar();
     renderList();
   }
 
-  async function deleteEntry() {
-    const existing = byDate.get(selectedDate);
-    if (!existing) return;
-    if (!confirm(`Delete your entry for ${shortDate(selectedDate)}? This can't be undone.`)) return;
-    const { error } = await sb.from("entries").delete().eq("id", existing.id);
-    if (error) { toast("Delete failed: " + error.message); return; }
-    byDate.delete(selectedDate);
-    allEntries = allEntries.filter((e) => e.id !== existing.id);
-    dirty = false;
-    toast("Entry deleted.");
-    openEditor(selectedDate);
-    renderStats();
-    renderCalendar();
-    renderList();
+  function addEntry(text) {
+    text = (text || "").trim();
+    if (!text) return;
+    curSections.push({ ts: new Date().toISOString(), text });
+    renderFeed();
+    saveNow();
+    const feed = $("#entry-feed"); if (feed) feed.scrollTop = feed.scrollHeight;
   }
 
   // ---- Editor ---------------------------------------------------------------
@@ -289,45 +303,86 @@
   function openEditor(date) {
     selectedDate = date;
     const row = byDate.get(date);
-    curMood = row ? row.mood : "";
-    $("#entry-title").value = row ? row.title : "";
-    $("#entry-content").value = row ? row.content : "";
+    curSections = sectionsOf(row).map((s) => ({ ts: s.ts || null, text: s.text || "" }));
+    curMood = row ? (row.mood || "") : "";
 
     const isToday = date === todayStr();
     $("#entry-daylabel").textContent = isToday ? "Today" : DOW[parseDate(date).getDay()];
     $("#entry-date").textContent = longDate(date);
     $("#back-today").hidden = isToday;
-    $("#delete-btn").hidden = !row;
 
     const chip = $("#prompt-chip");
-    chip.hidden = !isToday;
-    if (isToday) chip.textContent = "✨ " + promptForToday();
+    chip.hidden = !(isToday && curSections.length === 0); // gentle nudge only on an empty today
+    if (!chip.hidden) chip.textContent = "✨ " + promptForToday();
 
     renderMoodRow();
-    updateWordCount();
-    setSaveStatus(row ? "Saved" : "", !!row);
+    renderFeed();
+    setSaveStatus(curSections.length ? "Saved" : "", curSections.length > 0);
 
-    // refresh selection highlights
     renderCalendar();
     renderList();
+  }
+
+  function renderFeed() {
+    const feed = $("#entry-feed"); feed.innerHTML = "";
+    if (curSections.length === 0) {
+      const prev = latestBefore(selectedDate);
+      if (prev) feed.append(prevPeek(prev));
+      else feed.append(el("div", { className: "feed-empty", textContent: "Nothing here yet — add your first entry below." }));
+      return;
+    }
+    curSections.forEach((s, i) => {
+      const item = el("div", { className: "feed-entry" });
+      const head = el("div", { className: "feed-head" });
+      head.append(el("span", { className: "feed-time", textContent: s.ts ? fmtTime(s.ts) : "Earlier" }));
+      const del = el("button", { className: "feed-del", type: "button", title: "Delete this entry", textContent: "✕" });
+      del.addEventListener("click", () => {
+        if (!confirm("Delete this entry?")) return;
+        curSections.splice(i, 1); renderFeed(); saveNow();
+      });
+      head.append(del);
+      const body = el("textarea", { className: "feed-text", value: s.text });
+      body.addEventListener("input", () => { s.text = body.value; autoGrow(body); scheduleSave(); });
+      item.append(head, body);
+      feed.append(item);
+      autoGrow(body);
+    });
+  }
+
+  function latestBefore(dateStr) {
+    const days = allEntries
+      .filter((e) => e.entry_date < dateStr && sectionsOf(e).length > 0)
+      .sort((a, b) => b.entry_date.localeCompare(a.entry_date));
+    return days[0] || null;
+  }
+  function prevPeek(row) {
+    const secs = sectionsOf(row);
+    const last = secs[secs.length - 1];
+    const wrap = el("div", { className: "prev-peek" });
+    wrap.append(el("div", { className: "prev-peek-label", textContent: "Previously — " + shortDate(row.entry_date) + (last.ts ? ", " + fmtTime(last.ts) : "") }));
+    wrap.append(el("div", { className: "prev-peek-text", textContent: last.text }));
+    return wrap;
   }
 
   // ---- Stats ----------------------------------------------------------------
   function computeStreak() {
     let cur = todayStr();
-    if (!byDate.has(cur)) cur = addDays(cur, -1); // don't punish "haven't written yet today"
+    if (!hasEntry(cur)) cur = addDays(cur, -1); // don't punish "haven't written yet today"
     let n = 0;
-    while (byDate.has(cur)) { n++; cur = addDays(cur, -1); }
+    while (hasEntry(cur)) { n++; cur = addDays(cur, -1); }
     return n;
   }
+  function totalEntries() { return allEntries.reduce((n, e) => n + sectionsOf(e).length, 0); }
   function renderStats() {
     const streak = computeStreak();
     $("#streak-num").textContent = streak;
     $("#stat-streak").textContent = streak;
-    $("#stat-total").textContent = allEntries.length;
+    $("#stat-total").textContent = totalEntries();
     const now = new Date();
     const pref = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
-    $("#stat-month").textContent = allEntries.filter((e) => e.entry_date.startsWith(pref)).length;
+    $("#stat-month").textContent = allEntries
+      .filter((e) => e.entry_date.startsWith(pref))
+      .reduce((n, e) => n + sectionsOf(e).length, 0);
   }
 
   // ---- Calendar -------------------------------------------------------------
@@ -350,7 +405,7 @@
       cell.append(el("span", { className: "cal-day", textContent: String(d) }));
 
       const row = byDate.get(ds);
-      if (row) {
+      if (row && sectionsOf(row).length > 0) {
         cell.classList.add("has");
         cell.append(el("span", { className: "cal-dot", style: `background:${MOOD_COLOR[row.mood] || "var(--ink)"};` }));
       }
@@ -372,8 +427,8 @@
     const list = $("#entries-list");
     list.innerHTML = "";
 
-    let items = allEntries;
-    if (q) items = items.filter((e) => (e.title + " " + e.content).toLowerCase().includes(q));
+    let items = allEntries.filter((e) => sectionsOf(e).length > 0);
+    if (q) items = items.filter((e) => dayText(e).toLowerCase().includes(q));
 
     if (items.length === 0) {
       list.append(el("div", {
@@ -391,9 +446,11 @@
       top.append(ms);
       top.append(el("span", { className: "entry-item-date", textContent: shortDate(e.entry_date) }));
       item.append(top);
-      item.append(el("div", { className: "entry-item-title", textContent: e.title || firstLine(e.content) || "(untitled)" }));
-      const preview = (e.content || "").replace(/\s+/g, " ").trim();
-      if (preview) item.append(el("div", { className: "entry-item-preview", textContent: preview.slice(0, 100) }));
+      const dt = dayText(e);
+      const secN = sectionsOf(e).length;
+      item.append(el("div", { className: "entry-item-title", textContent: firstLine(dt) || "(no text)" }));
+      const preview = dt.replace(/\s+/g, " ").trim();
+      item.append(el("div", { className: "entry-item-preview", textContent: (secN > 1 ? secN + " entries · " : "") + preview.slice(0, 90) }));
       item.addEventListener("click", async () => {
         await maybeFlush();
         calCursor = parseDate(e.entry_date);
@@ -407,13 +464,14 @@
   function exportEntries() {
     if (allEntries.length === 0) { toast("No entries to export yet."); return; }
     const sorted = [...allEntries].sort((a, b) => a.entry_date.localeCompare(b.entry_date));
-    let md = `# My Journal\n\n_Exported ${shortDate(todayStr())} · ${allEntries.length} entries_\n`;
+    let md = `# My Journal\n\n_Exported ${shortDate(todayStr())} · ${totalEntries()} entries_\n`;
     for (const e of sorted) {
+      const secs = sectionsOf(e);
+      if (secs.length === 0) continue;
       md += `\n\n---\n\n## ${longDate(e.entry_date)}\n`;
       const mood = moodOf(e.mood);
       if (mood) md += `\n**Mood:** ${mood.emoji} ${mood.label}\n`;
-      if (e.title) md += `\n### ${e.title}\n`;
-      md += `\n${e.content || ""}\n`;
+      for (const s of secs) md += `\n**${s.ts ? fmtTime(s.ts) : "Entry"}**\n\n${s.text}\n`;
     }
     const blob = new Blob([md], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
@@ -467,7 +525,7 @@
     }
     empty.hidden = true; content.hidden = false;
 
-    const words = entries.reduce((s, e) => s + wordCount(e.content), 0);
+    const words = entries.reduce((s, e) => s + dayWordCount(e), 0);
     const avg = Math.round(words / entries.length);
     const moodCounts = {};
     let best = null;
@@ -486,9 +544,9 @@
       s.append(el("div", { className: "stat-label", textContent: label }));
       return s;
     };
-    statsEl.append(mk(entries.length, entries.length === 1 ? "Entry" : "Entries"));
+    statsEl.append(mk(entries.length, entries.length === 1 ? "Day" : "Days"));
     statsEl.append(mk(words, "Words"));
-    statsEl.append(mk(avg, "Avg words"));
+    statsEl.append(mk(avg, "Avg / day"));
     const topStat = el("div", { className: "stat" });
     const topNum = el("div", { className: "stat-num" });
     if (topMood) topNum.append(faceEl(topMood, 30)); else topNum.textContent = "—";
@@ -533,7 +591,7 @@
   function topWord(entries) {
     const freq = {};
     for (const e of entries) {
-      const words = (e.content || "").toLowerCase().match(/[a-z']{4,}/g) || [];
+      const words = dayText(e).toLowerCase().match(/[a-z']{4,}/g) || [];
       for (let w of words) { w = w.replace(/'s$/, ""); if (STOP.has(w)) continue; freq[w] = (freq[w] || 0) + 1; }
     }
     let best = null, n = 0;
@@ -543,9 +601,9 @@
 
   function localSummary(entries, r) {
     const parts = [];
-    parts.push(`You wrote ${entries.length} ${entries.length === 1 ? "entry" : "entries"} (${r.words} words, ~${r.avg} per entry) on ${r.daysWritten} of ${r.totalDays} days.`);
+    parts.push(`You wrote on ${r.daysWritten} of ${r.totalDays} days — ${r.words} words in all.`);
     if (r.topMood) parts.push(`Your mood leaned ${moodOf(r.topMood).label.toLowerCase()}.`);
-    if (r.best) { const d = parseDate(r.best.entry_date); parts.push(`Your brightest day was ${DOW[d.getDay()]}, ${MON_SHORT[d.getMonth()]} ${d.getDate()}${r.best.title ? ` — “${r.best.title}”` : ""}.`); }
+    if (r.best) { const d = parseDate(r.best.entry_date); parts.push(`Your brightest day was ${DOW[d.getDay()]}, ${MON_SHORT[d.getMonth()]} ${d.getDate()}.`); }
     const streak = computeStreak();
     if (streak > 0) parts.push(`You're on a ${streak}-day streak — keep it going!`);
     const word = topWord(entries);
@@ -563,7 +621,7 @@
       const dates = insightsPeriod === "week" ? weekDates() : monthDates();
       const today = todayStr();
       const entries = dates.filter((d) => d <= today).map((d) => byDate.get(d)).filter(Boolean)
-        .map((e) => ({ date: e.entry_date, mood: e.mood, title: e.title, content: e.content }));
+        .map((e) => ({ date: e.entry_date, mood: e.mood, content: dayText(e) }));
       const { data: { session } } = await sb.auth.getSession();
       const res = await fetch(url, {
         method: "POST",
@@ -585,6 +643,40 @@
     }
   }
 
+  // ---- Reader mode ----------------------------------------------------------
+  function applyViews() {
+    $("#planner-view").hidden = currentView !== "planner";
+    $("#journal-view").hidden = !(currentView === "journal" && !readerMode);
+    const rv = $("#reader-view"); if (rv) rv.hidden = !(currentView === "journal" && readerMode);
+  }
+  function toggleReader() {
+    readerMode = !readerMode;
+    const btn = $("#reader-btn"); if (btn) btn.textContent = readerMode ? "✎ Write" : "📖 Read";
+    if (readerMode) renderReader();
+    applyViews();
+    if (!readerMode) { const ci = $("#compose-input"); if (ci) ci.focus(); }
+  }
+  function renderReader() {
+    const body = $("#reader-body"); if (!body) return;
+    body.innerHTML = "";
+    const days = [...allEntries].filter((e) => sectionsOf(e).length > 0).sort((a, b) => b.entry_date.localeCompare(a.entry_date));
+    if (days.length === 0) { body.append(el("div", { className: "feed-empty", textContent: "Nothing written yet — switch back and start your first entry." })); return; }
+    for (const d of days) {
+      const day = el("section", { className: "reader-day" });
+      const h = el("h3", { className: "reader-date" });
+      h.append(el("span", { textContent: longDate(d.entry_date) }));
+      if (d.mood) h.append(faceEl(d.mood, 22));
+      day.append(h);
+      for (const s of sectionsOf(d)) {
+        const e = el("div", { className: "reader-entry" });
+        if (s.ts) e.append(el("div", { className: "reader-time", textContent: fmtTime(s.ts) }));
+        e.append(el("div", { className: "reader-text", textContent: s.text }));
+        day.append(e);
+      }
+      body.append(day);
+    }
+  }
+
   // ---- Planner --------------------------------------------------------------
   const uid = () => (window.crypto && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
 
@@ -596,8 +688,7 @@
     // flip the toggle + swap views immediately so the pill animates right away
     const tog = $("#view-toggle");
     if (tog) { tog.dataset.view = view; tog.setAttribute("aria-checked", view === "planner" ? "true" : "false"); }
-    $("#journal-view").hidden = view !== "journal";
-    $("#planner-view").hidden = view !== "planner";
+    applyViews();
     // then persist the page we left and load the one we entered
     if (prev === "journal") await maybeFlush();
     if (prev === "planner") await savePlanNow();
@@ -738,13 +829,15 @@
 
     calCursor = new Date();
     selectedDate = todayStr();
+    readerMode = false;
     await loadEntries();
     renderStats();
     openEditor(todayStr()); // also renders calendar + list
+    applyViews();
     let lastView = "journal";
     try { lastView = localStorage.getItem("dp-view") || "journal"; } catch (e) {}
     if (lastView === "planner") await switchView("planner");
-    else $("#entry-content").focus();
+    else $("#compose-input").focus();
   }
 
   function showAuth() {
@@ -752,8 +845,10 @@
     allEntries = [];
     byDate.clear();
     planItems = []; planFocus = ""; planLoaded = false; planDirty = false; currentView = "journal";
+    curSections = []; readerMode = false;
     $("#journal-view").hidden = false;
     $("#planner-view").hidden = true;
+    { const rv = $("#reader-view"); if (rv) rv.hidden = true; }
     { const tog = $("#view-toggle"); if (tog) { tog.dataset.view = "journal"; tog.setAttribute("aria-checked", "false"); } }
     $("#app-view").hidden = true;
     $("#setup-notice").hidden = true;
@@ -771,15 +866,24 @@
     $("#auth-form").addEventListener("submit", onAuthSubmit);
     $("#logout-btn").addEventListener("click", async () => { await maybeFlush(); await sb.auth.signOut(); });
 
-    // editor
-    $("#entry-title").addEventListener("input", scheduleSave);
-    $("#entry-content").addEventListener("input", () => { updateWordCount(); scheduleSave(); });
-    $("#delete-btn").addEventListener("click", deleteEntry);
+    // journal (timestamped log)
+    $("#compose-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const inp = $("#compose-input");
+      addEntry(inp.value);
+      inp.value = ""; autoGrow(inp); inp.focus();
+    });
+    $("#compose-input").addEventListener("keydown", (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); $("#compose-form").requestSubmit(); }
+    });
+    $("#compose-input").addEventListener("input", () => autoGrow($("#compose-input")));
+    $("#reader-btn").addEventListener("click", toggleReader);
+    $("#reader-exit").addEventListener("click", toggleReader);
     $("#back-today").addEventListener("click", async () => {
       await maybeFlush();
       calCursor = new Date();
       openEditor(todayStr());
-      $("#entry-content").focus();
+      $("#compose-input").focus();
     });
 
     // sidebar

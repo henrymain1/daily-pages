@@ -87,25 +87,30 @@
             <div id="entry-daylabel" class="entry-daylabel">Today</div>
             <h2 id="entry-date" class="entry-date">—</h2>
           </div>
-          <button id="back-today" class="btn btn-ghost" type="button" hidden>← Back to today</button>
+          <div class="editor-head-actions">
+            <button id="reader-btn" class="btn btn-ghost" type="button" title="Reader mode">📖 Read</button>
+            <button id="back-today" class="btn btn-ghost" type="button" hidden>← Today</button>
+          </div>
         </div>
-
-        <div id="prompt-chip" class="prompt-chip" hidden></div>
 
         <div class="mood-block">
           <span class="mood-label">How are you feeling?</span>
           <div class="mood-row" id="mood-row"></div>
         </div>
 
-        <input id="entry-title" class="entry-title" placeholder="Give the day a title (optional)" />
-        <textarea id="entry-content" class="entry-content" placeholder="How was your day? Start writing…"></textarea>
+        <div id="prompt-chip" class="prompt-chip" hidden></div>
 
-        <div class="editor-foot">
-          <span id="wordcount" class="wordcount">0 words</span>
-          <span class="spacer"></span>
-          <span id="save-status" class="save-status"></span>
-          <button id="delete-btn" class="btn btn-danger" type="button" hidden>Delete</button>
-        </div>
+        <div id="entry-feed" class="entry-feed"></div>
+
+        <form id="compose-form" class="compose">
+          <textarea id="compose-input" class="compose-input" rows="3" placeholder="What's on your mind right now?"></textarea>
+          <div class="compose-foot">
+            <span id="save-status" class="save-status"></span>
+            <span class="spacer"></span>
+            <span class="compose-hint">⌘/Ctrl + Enter</span>
+            <button class="btn btn-primary" type="submit">Add entry</button>
+          </div>
+        </form>
       </section>
 
       <!-- Sidebar -->
@@ -131,6 +136,15 @@
           <div id="entries-list" class="entries-list"></div>
         </div>
       </aside>
+    </main>
+
+    <!-- Journal reader mode -->
+    <main id="reader-view" class="reader" hidden>
+      <div class="reader-head">
+        <h2 class="reader-title">Your journal</h2>
+        <button id="reader-exit" class="btn btn-primary" type="button">✎ Back to writing</button>
+      </div>
+      <div id="reader-body" class="reader-body"></div>
     </main>
 
     <!-- Planner (distinct page) -->

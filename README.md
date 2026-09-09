@@ -10,8 +10,9 @@ Built as a static site (HTML/CSS/JS) hosted on **GitHub Pages**, with
 
 ## Features
 - Email/password login
-- One entry per day, distraction-free editor with autosave
-- Mood picker · a daily writing prompt · live word count
+- **Timestamped entries** — write, hit Add, and it logs a time-stamped entry; add as many as you like, any day, and autosaves
+- **Reader mode** — a clean, flowing read of your whole journal across days
+- Mood picker · a daily writing prompt
 - **Planner page** — a daily focus + a checkable to-do list (its own page)
 - **Insights** — mood trends and a week/month review with a summary
 - 🔥 streak + stats (entries, entries this month)
