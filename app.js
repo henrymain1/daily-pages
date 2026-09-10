@@ -139,7 +139,8 @@
   let planDate = todayStr();
   let planFocus = "";
   let planItems = [];        // [{ id, text, done }]
-  let planLoaded = false;
+  let plansLoaded = false;
+  let plansByDate = new Map(); // plan_date -> plan row (all plans, loaded once)
   let planDirty = false;
   let planSaveTimer = null;
 
@@ -772,16 +773,15 @@
   }
 
   async function ensurePlan() {
-    if (!planLoaded || planDate !== todayStr()) {
-      planDate = todayStr();
-      await loadPlan();
-    }
+    if (!plansLoaded) { setPlanLoading(true); await loadAllPlans(); setPlanLoading(false); }
+    if (!plansLoaded) return; // table missing — setup message already shown
+    planDate = todayStr();
+    applyPlanForDate();
     renderPlanner();
   }
 
-  async function loadPlan() {
-    planFocus = ""; planItems = []; planLoaded = false;
-    const { data, error } = await sb.from("plans").select("*").eq("plan_date", planDate).maybeSingle();
+  async function loadAllPlans() {
+    const { data, error } = await sb.from("plans").select("*");
     if (error) {
       const info = `${error.message || ""} ${error.code || ""} ${error.details || ""}`;
       if (/plans|schema cache|does not exist|42P01|PGRST2\d\d/i.test(info)) {
@@ -789,14 +789,24 @@
         const s = $("#plan-setup"); s.hidden = false;
         s.innerHTML = "<strong>One quick setup step 🛠️</strong><br>The planner needs a small database table. In Supabase → <strong>SQL Editor</strong>, paste &amp; run the SQL from <code>supabase-planner.sql</code>, then reload this page.";
       } else {
-        toast("Couldn't load your plan: " + error.message);
+        toast("Couldn't load your plans: " + error.message);
       }
       return;
     }
     $("#plan-setup").hidden = true; $("#plan-body").hidden = false;
-    if (data) { planFocus = data.focus || ""; planItems = Array.isArray(data.items) ? data.items : []; }
-    planLoaded = true;
+    plansByDate = new Map((data || []).map((p) => [p.plan_date, p]));
+    plansLoaded = true;
   }
+
+  function applyPlanForDate() {
+    const row = plansByDate.get(planDate);
+    planFocus = row ? (row.focus || "") : "";
+    planItems = row && Array.isArray(row.items)
+      ? row.items.map((it) => ({ ...it, subs: Array.isArray(it.subs) ? it.subs.map((s) => ({ ...s })) : [] }))
+      : [];
+  }
+
+  function setPlanLoading(on) { const s = $("#plan-loading"); if (s) s.hidden = !on; }
 
   function renderPlanner() {
     const isToday = planDate === todayStr();
@@ -806,14 +816,14 @@
     $("#plan-focus").value = planFocus;
     renderPlanList();
     updatePlanProgress();
-    const has = planLoaded && (planFocus.trim() || planItems.length);
+    const has = plansLoaded && (planFocus.trim() || planItems.length);
     setPlanStatus(has ? "Saved" : "", !!has);
   }
 
   async function goToPlanDate(dateStr) {
-    await savePlanNow();
+    if (planDirty) { setPlanLoading(true); await savePlanNow(); setPlanLoading(false); }
     planDate = dateStr;
-    await loadPlan();
+    applyPlanForDate();     // instant — read from the in-memory map
     renderPlanner();
   }
 
@@ -891,13 +901,21 @@
 
   async function savePlanNow() {
     clearTimeout(planSaveTimer);
-    if (!currentUser || !planLoaded) { planDirty = false; return; }
+    if (!currentUser || !plansLoaded) { planDirty = false; return; }
     const focus = $("#plan-focus") ? $("#plan-focus").value : planFocus;
     planFocus = focus;
-    if (!focus.trim() && planItems.length === 0) { planDirty = false; setPlanStatus(""); return; }
+    const empty = !focus.trim() && planItems.length === 0;
+    const existing = plansByDate.get(planDate);
+    if (empty) {
+      planDirty = false;
+      if (existing) { await sb.from("plans").delete().eq("id", existing.id); plansByDate.delete(planDate); }
+      setPlanStatus("");
+      return;
+    }
     const row = { user_id: currentUser.id, plan_date: planDate, focus, items: planItems, updated_at: new Date().toISOString() };
-    const { error } = await sb.from("plans").upsert(row, { onConflict: "user_id,plan_date" });
+    const { data, error } = await sb.from("plans").upsert(row, { onConflict: "user_id,plan_date" }).select().single();
     if (error) { setPlanStatus("Save failed", false); toast("Plan save failed: " + error.message); return; }
+    plansByDate.set(planDate, data);
     planDirty = false; setPlanStatus("Saved ✓", true);
   }
 
@@ -932,7 +950,7 @@
     currentUser = null;
     allEntries = [];
     byDate.clear();
-    planItems = []; planFocus = ""; planLoaded = false; planDirty = false; currentView = "journal";
+    planItems = []; planFocus = ""; plansLoaded = false; plansByDate.clear(); planDirty = false; currentView = "journal";
     curSections = []; readerMode = false;
     $("#journal-view").hidden = false;
     $("#planner-view").hidden = true;
