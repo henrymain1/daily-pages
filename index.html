@@ -151,11 +151,18 @@
     <main id="planner-view" class="planner" hidden>
       <section class="planner-pane card">
         <div class="planner-head">
-          <div>
-            <div class="entry-daylabel">Today's plan</div>
+          <div class="planner-head-left">
+            <div id="plan-daylabel" class="entry-daylabel">Today's plan</div>
             <h2 id="plan-date" class="entry-date">—</h2>
           </div>
-          <span id="plan-progress" class="plan-progress" hidden></span>
+          <div class="planner-head-right">
+            <span id="plan-progress" class="plan-progress" hidden></span>
+            <div class="plan-nav">
+              <button id="plan-prev" class="icon-btn" type="button" title="Previous day">‹</button>
+              <button id="plan-today" class="btn btn-ghost" type="button" hidden>Today</button>
+              <button id="plan-next" class="icon-btn" type="button" title="Next day">›</button>
+            </div>
+          </div>
         </div>
 
         <div id="plan-setup" class="plan-setup" hidden></div>

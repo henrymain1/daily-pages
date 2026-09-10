@@ -742,12 +742,22 @@
   }
 
   function renderPlanner() {
+    const isToday = planDate === todayStr();
+    $("#plan-daylabel").textContent = isToday ? "Today's plan" : DOW[parseDate(planDate).getDay()];
     $("#plan-date").textContent = longDate(planDate);
+    $("#plan-today").hidden = isToday;
     $("#plan-focus").value = planFocus;
     renderPlanList();
     updatePlanProgress();
     const has = planLoaded && (planFocus.trim() || planItems.length);
     setPlanStatus(has ? "Saved" : "", !!has);
+  }
+
+  async function goToPlanDate(dateStr) {
+    await savePlanNow();
+    planDate = dateStr;
+    await loadPlan();
+    renderPlanner();
   }
 
   function renderPlanList() {
@@ -922,6 +932,9 @@
     $("#view-toggle").addEventListener("click", () => switchView(currentView === "journal" ? "planner" : "journal"));
     $("#plan-focus").addEventListener("input", () => { planFocus = $("#plan-focus").value; schedulePlanSave(); });
     $("#plan-add-form").addEventListener("submit", (e) => { e.preventDefault(); const inp = $("#plan-add-input"); addTask(inp.value); inp.value = ""; inp.focus(); });
+    $("#plan-prev").addEventListener("click", () => goToPlanDate(addDays(planDate, -1)));
+    $("#plan-next").addEventListener("click", () => goToPlanDate(addDays(planDate, 1)));
+    $("#plan-today").addEventListener("click", () => goToPlanDate(todayStr()));
 
     // shortcuts + safety
     document.addEventListener("keydown", (e) => {
