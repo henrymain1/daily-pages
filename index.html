@@ -221,6 +221,25 @@
     </div>
   </div>
 
+  <!-- Weekly AI reflection popup -->
+  <div id="summary-view" class="modal" hidden>
+    <div class="modal-card card summary-card">
+      <div class="modal-head">
+        <div>
+          <h2 class="modal-title">✨ Your week in review</h2>
+          <div id="summary-sub" class="summary-sub"></div>
+        </div>
+        <button id="summary-close" class="icon-btn" type="button" title="Close">✕</button>
+      </div>
+      <div class="modal-scroll">
+        <div id="summary-text" class="summary-reflection"></div>
+      </div>
+      <div class="summary-foot">
+        <button id="summary-read" class="btn btn-primary" type="button">Mark as read</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast" hidden></div>
 
   <!-- Supabase client (public CDN), then your config, then the app -->

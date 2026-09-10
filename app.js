@@ -662,6 +662,63 @@
     }
   }
 
+  // ---- Weekly AI reflection -------------------------------------------------
+  let currentSummaryWeek = null;
+  function weekEndSundayStr() { const t = new Date(); const d = new Date(t); d.setDate(t.getDate() - t.getDay()); return ymd(d); }
+  function weekLabelFor(sun) { const s = parseDate(sun); const m = parseDate(addDays(sun, -6)); return `${MON_SHORT[m.getMonth()]} ${m.getDate()} – ${MON_SHORT[s.getMonth()]} ${s.getDate()}`; }
+
+  async function checkWeeklySummary() {
+    if (!cfg.AI_SUMMARY_URL || !currentUser) return;
+    const sun = weekEndSundayStr();
+    let row = null;
+    try {
+      const { data, error } = await sb.from("summaries").select("*").eq("week", sun).maybeSingle();
+      if (error) return; // table not set up yet, or transient — stay silent
+      row = data;
+    } catch (e) { return; }
+
+    if (row) { if (!row.seen) showSummaryPopup(row.text, sun); return; }
+
+    // none yet for this week — generate it if there's anything to reflect on
+    const mon = addDays(sun, -6);
+    const weekEntries = allEntries
+      .filter((e) => e.entry_date >= mon && e.entry_date <= sun && sectionsOf(e).length > 0)
+      .sort((a, b) => a.entry_date.localeCompare(b.entry_date))
+      .map((e) => ({ date: shortDate(e.entry_date), mood: moodOf(e.mood) ? moodOf(e.mood).label : "", content: dayText(e) }));
+    if (weekEntries.length === 0) return;
+
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      const res = await fetch(cfg.AI_SUMMARY_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: cfg.SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${session ? session.access_token : cfg.SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ entries: weekEntries, weekLabel: weekLabelFor(sun) }),
+      });
+      if (!res.ok) return;
+      const json = await res.json();
+      if (!json.summary) return;
+      await sb.from("summaries").insert({ week: sun, text: json.summary, seen: false });
+      showSummaryPopup(json.summary, sun);
+    } catch (e) { /* stay silent — the reflection just won't appear this time */ }
+  }
+
+  function showSummaryPopup(text, weekKey) {
+    currentSummaryWeek = weekKey;
+    $("#summary-sub").textContent = "Week of " + weekLabelFor(weekKey);
+    $("#summary-text").textContent = text;
+    $("#summary-view").hidden = false;
+  }
+  async function closeSummary(markSeen) {
+    $("#summary-view").hidden = true;
+    if (markSeen && currentSummaryWeek) {
+      try { await sb.from("summaries").update({ seen: true }).eq("week", currentSummaryWeek); } catch (e) {}
+    }
+  }
+
   // ---- Reader mode ----------------------------------------------------------
   function applyViews() {
     $("#planner-view").hidden = currentView !== "planner";
@@ -867,6 +924,8 @@
     try { lastView = localStorage.getItem("dp-view") || "journal"; } catch (e) {}
     if (lastView === "planner") await switchView("planner");
     else $("#compose-input").focus();
+
+    checkWeeklySummary(); // fire-and-forget; pops up when a new week's reflection is ready
   }
 
   function showAuth() {
@@ -928,6 +987,11 @@
     $$(".period-btn").forEach((b) => b.addEventListener("click", () => setPeriod(b.dataset.period)));
     $("#ai-summary-btn").addEventListener("click", generateAISummary);
 
+    // weekly reflection popup
+    $("#summary-close").addEventListener("click", () => closeSummary(false));
+    $("#summary-read").addEventListener("click", () => closeSummary(true));
+    $("#summary-view").addEventListener("click", (e) => { if (e.target === $("#summary-view")) closeSummary(false); });
+
     // planner
     $("#view-toggle").addEventListener("click", () => switchView(currentView === "journal" ? "planner" : "journal"));
     $("#plan-focus").addEventListener("input", () => { planFocus = $("#plan-focus").value; schedulePlanSave(); });
@@ -943,6 +1007,7 @@
         if (currentUser) (currentView === "planner" ? savePlanNow() : saveNow());
       }
       if (e.key === "Escape" && !$("#insights-view").hidden) closeInsights();
+      if (e.key === "Escape" && !$("#summary-view").hidden) closeSummary(false);
     });
     window.addEventListener("beforeunload", () => { if (dirty) saveNow(); if (planDirty) savePlanNow(); });
   }

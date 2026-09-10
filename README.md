@@ -74,12 +74,27 @@ visit your `username.github.io/repo` link.
 
 </details>
 
+## Weekly AI reflection (optional)
+Each Sunday, the app can generate a short, calm reflection on your week with
+**Claude Haiku** and pop it up next time you open the site. It stays off until
+you set it up:
+
+1. **Get an Anthropic API key** at [console.anthropic.com](https://console.anthropic.com) and add a little billing credit (each weekly reflection costs a fraction of a cent).
+2. **Add the storage table:** Supabase → SQL Editor → run [`supabase-summaries.sql`](supabase-summaries.sql).
+3. **Deploy the function:** Supabase → Edge Functions → create one named `weekly-summary` and paste in [`supabase/functions/weekly-summary/index.ts`](supabase/functions/weekly-summary/index.ts). (Or `supabase functions deploy weekly-summary`.)
+4. **Add the secret:** in Edge Functions settings, add a secret `ANTHROPIC_API_KEY` = your key.
+5. **Point the app at it:** set `AI_SUMMARY_URL` in [`config.js`](config.js) to the function URL (`https://<project>.supabase.co/functions/v1/weekly-summary`).
+
+Your API key lives only as a Supabase secret — never in the website. Entries for the week are sent to the function (and on to Anthropic) only to write the reflection.
+
 ## Files
 | File | What it is |
 |------|------------|
 | `index.html` | Page structure |
 | `styles.css` | Styling / neo-brutalist "Almanac" theme |
-| `app.js` | App logic (auth, editor, planner, calendar, insights, export) |
-| `config.js` | Supabase project URL + publishable key (public-safe) |
+| `app.js` | App logic (auth, journal log, reader, planner, calendar, insights, export) |
+| `config.js` | Supabase URL + publishable key + optional AI function URL |
 | `supabase-setup.sql` | Journal table (`entries`) + Row Level Security |
 | `supabase-planner.sql` | Planner table (`plans`) + Row Level Security |
+| `supabase-summaries.sql` | Weekly-reflection table (`summaries`) + RLS |
+| `supabase/functions/weekly-summary/` | Edge Function that calls Claude Haiku |
