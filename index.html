@@ -28,8 +28,65 @@
     </div>
   </div>
 
+  <!-- ============ Landing (marketing) ============ -->
+  <div id="landing-view" class="landing" hidden>
+    <header class="landing-nav">
+      <div class="brand"><span class="brand-mark">📖</span><span>Daily Pages</span></div>
+      <div class="landing-nav-actions">
+        <button id="landing-theme" class="icon-btn" type="button" title="Toggle light / dark">🌙</button>
+        <button class="btn btn-ghost landing-login" type="button">Log in</button>
+        <button class="btn btn-primary landing-start" type="button">Get started</button>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-badge">Your private daily journal &amp; planner</div>
+      <h1 class="hero-title">Write your days.<br />See your patterns.</h1>
+      <p class="hero-sub">A calm place to journal whenever the moment hits, plan your day, and get a gentle weekly reflection on where your head has been.</p>
+      <div class="hero-cta">
+        <button class="btn btn-primary btn-lg landing-start" type="button">Start journaling — free</button>
+        <button class="btn btn-lg landing-login" type="button">I have an account</button>
+      </div>
+      <div class="hero-moods" id="hero-moods" aria-hidden="true"></div>
+    </section>
+
+    <section class="features">
+      <div class="feature-card">
+        <div class="feature-icon">📝</div>
+        <h3>Journal on your time</h3>
+        <p>Jot a thought whenever it strikes — every entry is timestamped and saved to your day. Come back tonight, tomorrow, whenever.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">✅</div>
+        <h3>Plan your day</h3>
+        <p>A simple daily planner with a focus and a checklist — subtasks included. Flip back through past days anytime.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>See your patterns</h3>
+        <p>Mood trends, streaks, and a weekly review that shows how the days actually went.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">✨</div>
+        <h3>Weekly reflection</h3>
+        <p>Each week, a short and calm reflection on your entries — a quiet mirror that helps you notice what mattered.</p>
+      </div>
+    </section>
+
+    <section class="landing-cta">
+      <h2>Start today's page.</h2>
+      <button class="btn btn-lg landing-start" type="button">Get started — it's free</button>
+    </section>
+
+    <footer class="landing-foot">
+      <span><span class="brand-mark">📖</span>&nbsp;Daily Pages</span>
+      <span>Your entries are private to you.</span>
+    </footer>
+  </div>
+
   <!-- ============ Auth ============ -->
   <div id="auth-view" class="auth-wrap" hidden>
+    <button id="auth-back" class="btn btn-ghost auth-back" type="button">← Back</button>
     <form id="auth-form" class="card auth-card" autocomplete="on">
       <div class="brand"><span class="brand-mark">📖</span><span>Daily Pages</span></div>
       <p class="tagline">A quiet place to write, one day at a time.</p>

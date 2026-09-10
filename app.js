@@ -31,9 +31,10 @@
   function applyTheme(t) {
     document.documentElement.setAttribute("data-theme", t);
     const icon = t === "dark" ? "☀️" : "🌙";
-    const a = $("#theme-toggle"), b = $("#auth-theme");
+    const a = $("#theme-toggle"), b = $("#auth-theme"), c = $("#landing-theme");
     if (a) a.textContent = icon;
     if (b) b.textContent = icon;
+    if (c) c.textContent = icon;
     try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
   }
   (function initTheme() {
@@ -924,6 +925,7 @@
     if (currentUser && currentUser.id === user.id && !$("#app-view").hidden) return;
     currentUser = user;
     $("#auth-view").hidden = true;
+    $("#landing-view").hidden = true;
     $("#setup-notice").hidden = true;
     $("#app-view").hidden = false;
     const initial = ((user.email || "?").trim().charAt(0) || "?").toUpperCase();
@@ -946,19 +948,28 @@
     checkWeeklySummary(); // fire-and-forget; pops up when a new week's reflection is ready
   }
 
-  function showAuth() {
+  function showLanding() {
     currentUser = null;
     allEntries = [];
     byDate.clear();
     planItems = []; planFocus = ""; plansLoaded = false; plansByDate.clear(); planDirty = false; currentView = "journal";
     curSections = []; readerMode = false;
-    $("#journal-view").hidden = false;
-    $("#planner-view").hidden = true;
-    { const rv = $("#reader-view"); if (rv) rv.hidden = true; }
     { const tog = $("#view-toggle"); if (tog) { tog.dataset.view = "journal"; tog.setAttribute("aria-checked", "false"); } }
     $("#app-view").hidden = true;
+    $("#auth-view").hidden = true;
     $("#setup-notice").hidden = true;
+    const hm = $("#hero-moods"); if (hm) hm.innerHTML = MOODS.map((m) => moodFace(m.key, 42)).join("");
+    $("#landing-view").hidden = false;
+    applyTheme(currentTheme());
+  }
+
+  function showAuthForm(mode) {
+    $("#landing-view").hidden = true;
+    $("#setup-notice").hidden = true;
+    $("#app-view").hidden = true;
     $("#auth-view").hidden = false;
+    setAuthMode(mode || "login");
+    const em = $("#email"); if (em) em.focus();
   }
 
   // ---- Wire up events -------------------------------------------------------
@@ -971,6 +982,12 @@
     $$(".seg-btn").forEach((b) => b.addEventListener("click", () => setAuthMode(b.dataset.mode)));
     $("#auth-form").addEventListener("submit", onAuthSubmit);
     $("#logout-btn").addEventListener("click", async () => { await maybeFlush(); await sb.auth.signOut(); });
+
+    // landing → auth
+    $$(".landing-start").forEach((b) => b.addEventListener("click", () => showAuthForm("signup")));
+    $$(".landing-login").forEach((b) => b.addEventListener("click", () => showAuthForm("login")));
+    $("#auth-back").addEventListener("click", showLanding);
+    $("#landing-theme").addEventListener("click", () => applyTheme(currentTheme() === "dark" ? "light" : "dark"));
 
     // journal (timestamped log)
     $("#compose-form").addEventListener("submit", (e) => {
@@ -1081,14 +1098,14 @@
     try {
       const { data: { session } } = await sb.auth.getSession();
       if (session && session.user) enterApp(session.user);
-      else showAuth();
+      else showLanding();
     } catch (e) {
-      showAuth();
+      showLanding();
     }
 
     sb.auth.onAuthStateChange((_event, session) => {
       if (session && session.user) enterApp(session.user);
-      else showAuth();
+      else showLanding();
     });
   }
 
