@@ -128,6 +128,7 @@
           <button id="insights-btn" class="icon-btn" type="button" title="Insights &amp; review">📊</button>
           <button id="export-btn" class="icon-btn" type="button" title="Export all entries (.md)">⬇️</button>
           <button id="theme-toggle" class="icon-btn" type="button" title="Toggle light / dark">🌙</button>
+          <button id="settings-btn" class="icon-btn" type="button" title="Settings">⚙️</button>
           <div class="user-menu">
             <div id="user-avatar" class="avatar" title=""></div>
             <button id="logout-btn" class="btn btn-ghost" type="button">Log out</button>
@@ -273,6 +274,40 @@
                 <div id="ai-summary-out" class="summary-box ai" hidden></div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div id="settings-view" class="modal" hidden>
+    <div class="modal-card card">
+      <div class="modal-head">
+        <h2 class="modal-title">⚙️ Settings</h2>
+        <button id="settings-close" class="icon-btn" type="button" title="Close">✕</button>
+      </div>
+      <div class="modal-scroll">
+        <div class="insights-section">
+          <h3 class="insights-h">Appearance</h3>
+          <div class="skin-options">
+            <button class="skin-option" type="button" data-skin="almanac">
+              <span class="skin-swatch skin-swatch-almanac"></span>
+              <span class="skin-name">Almanac</span>
+              <span class="skin-desc">Bold &amp; playful</span>
+            </button>
+            <button class="skin-option" type="button" data-skin="glass">
+              <span class="skin-swatch skin-swatch-glass"></span>
+              <span class="skin-name">Liquid Glass</span>
+              <span class="skin-desc">Modern &amp; serene</span>
+            </button>
+          </div>
+        </div>
+        <div class="insights-section">
+          <h3 class="insights-h">Mode</h3>
+          <div class="seg" id="mode-seg">
+            <button class="mode-btn" type="button" data-mode="light">☀️ Light</button>
+            <button class="mode-btn" type="button" data-mode="dark">🌙 Dark</button>
           </div>
         </div>
       </div>

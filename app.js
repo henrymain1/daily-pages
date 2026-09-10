@@ -44,6 +44,26 @@
     applyTheme(t);
   })();
 
+  // ---- Skin (visual theme) --------------------------------------------------
+  const SKIN_KEY = "dp-skin";
+  function currentSkin() { return document.documentElement.getAttribute("data-skin") || "almanac"; }
+  function applySkin(skin) {
+    document.documentElement.setAttribute("data-skin", skin);
+    try { localStorage.setItem(SKIN_KEY, skin); } catch (e) {}
+    refreshSettingsUI();
+  }
+  function refreshSettingsUI() {
+    $$(".skin-option").forEach((b) => b.classList.toggle("active", b.dataset.skin === currentSkin()));
+    $$(".mode-btn").forEach((b) => b.classList.toggle("active", b.dataset.mode === currentTheme()));
+  }
+  function openSettings() { $("#settings-view").hidden = false; refreshSettingsUI(); }
+  function closeSettings() { $("#settings-view").hidden = true; }
+  (function initSkin() {
+    let s = "almanac";
+    try { s = localStorage.getItem(SKIN_KEY) || "almanac"; } catch (e) {}
+    document.documentElement.setAttribute("data-skin", s);
+  })();
+
   // ---- Date utils (local time, timezone-safe strings) -----------------------
   const DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
   const MON = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -1022,6 +1042,13 @@
     $$(".period-btn").forEach((b) => b.addEventListener("click", () => setPeriod(b.dataset.period)));
     $("#ai-summary-btn").addEventListener("click", generateAISummary);
 
+    // settings
+    $("#settings-btn").addEventListener("click", openSettings);
+    $("#settings-close").addEventListener("click", closeSettings);
+    $("#settings-view").addEventListener("click", (e) => { if (e.target === $("#settings-view")) closeSettings(); });
+    $$(".skin-option").forEach((b) => b.addEventListener("click", () => applySkin(b.dataset.skin)));
+    $$(".mode-btn").forEach((b) => b.addEventListener("click", () => { applyTheme(b.dataset.mode); refreshSettingsUI(); }));
+
     // weekly reflection popup
     $("#summary-close").addEventListener("click", () => closeSummary(false));
     $("#summary-read").addEventListener("click", () => closeSummary(true));
@@ -1043,6 +1070,7 @@
       }
       if (e.key === "Escape" && !$("#insights-view").hidden) closeInsights();
       if (e.key === "Escape" && !$("#summary-view").hidden) closeSummary(false);
+      if (e.key === "Escape" && !$("#settings-view").hidden) closeSettings();
     });
     window.addEventListener("beforeunload", () => { if (dirty) saveNow(); if (planDirty) savePlanNow(); });
   }
