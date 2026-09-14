@@ -155,6 +155,146 @@
 :root[data-skin="glass"] .cal-cell.selected { transform: none; }
 :root[data-skin="glass"] .editor-pane::before { opacity: 0.5; }
 
+/* ============================================================
+   Skin: "Retro 95" — classic desktop (teal ground, gray panels,
+   3D bevels, navy title bars). Widgets read like program windows.
+   ============================================================ */
+:root[data-skin="retro"] {
+  --font-display: "Tahoma", "MS Sans Serif", Geneva, Verdana, sans-serif;
+  --font-body: "Tahoma", "MS Sans Serif", Geneva, Verdana, sans-serif;
+  --bg: #008080;            /* iconic desktop teal */
+  --surface: #c0c0c0;       /* window gray */
+  --surface-2: #d4d0c8;
+  --ink: #000000;
+  --muted: #40404a;
+  --primary: #000080;       /* navy accent */
+  --primary-ink: #ffffff;
+  --primary-weak: #b0c4de;
+  --yellow: #ffea61;
+  --yellow-weak: #fff7c4;
+  --pink: #c000c0;
+  --pink-weak: #edc9ed;
+  --success: #008000;
+  --danger: #c00000;
+  --grid: transparent;      /* solid teal desktop, no graph paper */
+  --edge: #808080;
+  --shadow-col: #808080;
+  --bw: 2px;
+  --radius: 0; --radius-sm: 0;
+  /* 3D bevels (double-line, like classic window chrome) */
+  --raise: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf;
+  --sink:  inset -1px -1px #ffffff, inset 1px 1px #808080, inset -2px -2px #dfdfdf, inset 2px 2px #0a0a0a;
+  --press: inset 1px 1px #0a0a0a, inset -1px -1px #ffffff, inset 2px 2px #808080, inset -2px -2px #dfdfdf;
+  --sh: var(--raise);
+  --sh-lg: var(--raise);
+}
+:root[data-skin="retro"][data-theme="dark"] {
+  --bg: #1a1a1a;
+  --surface: #3c3c3c;
+  --surface-2: #4a4a4a;
+  --ink: #f0f0f0;
+  --muted: #b6b6be;
+  --primary: #1084d0;
+  --primary-ink: #ffffff;
+  --primary-weak: #2a3f5a;
+  --edge: #6a6a6a;
+  --shadow-col: #000000;
+  --raise: inset -1px -1px #000000, inset 1px 1px #6f6f6f, inset -2px -2px #1f1f1f, inset 2px 2px #545454;
+  --sink:  inset -1px -1px #6f6f6f, inset 1px 1px #1f1f1f, inset -2px -2px #545454, inset 2px 2px #000000;
+  --press: inset 1px 1px #000000, inset -1px -1px #6f6f6f, inset 2px 2px #1f1f1f, inset -2px -2px #545454;
+}
+/* square everything */
+:root[data-skin="retro"] * { border-radius: 0 !important; }
+/* solid desktop ground */
+:root[data-skin="retro"] body { background-image: none; background-color: var(--bg); }
+
+/* raised panels — drop the flat border, use the bevel */
+:root[data-skin="retro"] .card,
+:root[data-skin="retro"] .appbar,
+:root[data-skin="retro"] .modal-card,
+:root[data-skin="retro"] .stat,
+:root[data-skin="retro"] .feature-card,
+:root[data-skin="retro"] .plan-task-group,
+:root[data-skin="retro"] .summary-card,
+:root[data-skin="retro"] .streak-badge,
+:root[data-skin="retro"] .dist-chip,
+:root[data-skin="retro"] .prompt-chip {
+  border: none; box-shadow: var(--raise); background: var(--surface);
+}
+:root[data-skin="retro"] .appbar { border-bottom: 2px solid var(--edge); box-shadow: none; }
+
+/* buttons — raised, and pressed-in when active */
+:root[data-skin="retro"] .btn,
+:root[data-skin="retro"] .icon-btn,
+:root[data-skin="retro"] .ghost-toggle {
+  border: none; box-shadow: var(--raise); background: var(--surface); color: var(--ink);
+  transition: none;
+}
+:root[data-skin="retro"] .btn-primary { background: var(--surface); color: var(--ink); }
+:root[data-skin="retro"] .btn:hover,
+:root[data-skin="retro"] .icon-btn:hover,
+:root[data-skin="retro"] .ghost-toggle:hover { transform: none; box-shadow: var(--raise); background: var(--surface); }
+:root[data-skin="retro"] .btn:active,
+:root[data-skin="retro"] .icon-btn:active,
+:root[data-skin="retro"] .ghost-toggle:active { transform: none; box-shadow: var(--press); }
+:root[data-skin="retro"] .btn:focus-visible { outline: 1px dotted var(--ink); outline-offset: -4px; }
+
+/* sunken fields */
+:root[data-skin="retro"] .field input,
+:root[data-skin="retro"] .compose-input,
+:root[data-skin="retro"] .search,
+:root[data-skin="retro"] .plan-add-input,
+:root[data-skin="retro"] .plan-focus,
+:root[data-skin="retro"] .list-add-input2 {
+  border: none; box-shadow: var(--sink); background: #ffffff; color: #000000; transition: none;
+}
+:root[data-skin="retro"][data-theme="dark"] .field input,
+:root[data-skin="retro"][data-theme="dark"] .compose-input,
+:root[data-skin="retro"][data-theme="dark"] .search,
+:root[data-skin="retro"][data-theme="dark"] .plan-add-input,
+:root[data-skin="retro"][data-theme="dark"] .plan-focus,
+:root[data-skin="retro"][data-theme="dark"] .list-add-input2 { background: #2a2a2a; color: #f0f0f0; }
+:root[data-skin="retro"] .field input:focus,
+:root[data-skin="retro"] .compose-input:focus,
+:root[data-skin="retro"] .search:focus,
+:root[data-skin="retro"] .plan-add-input:focus,
+:root[data-skin="retro"] .plan-focus:focus,
+:root[data-skin="retro"] .list-add-input2:focus { transform: none; box-shadow: var(--sink); outline: 1px dotted var(--muted); outline-offset: -4px; }
+
+/* 3-way page switch → sunken well with a raised active "tab" */
+:root[data-skin="retro"] .view-toggle { border: none; box-shadow: var(--sink); background: var(--surface); padding: 3px; }
+:root[data-skin="retro"] .view-toggle-thumb { border: none; box-shadow: var(--raise); background: var(--surface); }
+:root[data-skin="retro"] .view-toggle-opt { color: var(--ink); font-weight: 700; }
+
+/* Lists widgets → program windows: navy title bar + close box */
+:root[data-skin="retro"] .list-widget { padding: 2px; }
+:root[data-skin="retro"] .list-widget-head {
+  background: linear-gradient(90deg, #000080, #1084d0); color: #ffffff;
+  margin: 0 0 4px; padding: 3px 3px 3px 6px; cursor: move;
+}
+:root[data-skin="retro"] .list-title { color: #ffffff; font-weight: 700; }
+:root[data-skin="retro"] .list-title::placeholder { color: #cdd8ff; }
+:root[data-skin="retro"] .list-del {
+  color: #000; background: var(--surface); box-shadow: var(--raise);
+  width: 18px; height: 16px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 0.72rem;
+}
+:root[data-skin="retro"] .list-del:hover { background: var(--surface); color: #000; }
+:root[data-skin="retro"] .list-del:active { box-shadow: var(--press); }
+:root[data-skin="retro"] .list-items { padding: 0 4px; }
+:root[data-skin="retro"] .list-add { padding: 0 4px 4px; }
+
+/* checkboxes → sunken white wells with a black tick */
+:root[data-skin="retro"] .list-check { border: none; box-shadow: var(--sink); background: #ffffff; }
+:root[data-skin="retro"] .list-check.checked { background: #ffffff; }
+:root[data-skin="retro"] .list-check.checked::after { color: #000000; }
+
+/* kill the neo-brutalist lift on misc hovers */
+:root[data-skin="retro"] .entry-item:hover,
+:root[data-skin="retro"] .cal-cell:hover,
+:root[data-skin="retro"] .cal-cell.selected,
+:root[data-skin="retro"] .feature-card:hover,
+:root[data-skin="retro"] .stat:hover { transform: none; }
+
 * { box-sizing: border-box; }
 html { height: 100%; }
 
@@ -646,12 +786,13 @@ code {
 .compose-hint { font-family: var(--font-display); font-size: 0.72rem; color: var(--muted); }
 
 /* ---------- Settings ---------- */
-.skin-options { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+.skin-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 0.7rem; }
 .skin-option { text-align: left; border: var(--bw) solid var(--edge); border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--sh); padding: 0.8rem; cursor: pointer; display: flex; flex-direction: column; }
 .skin-option.active { outline: 3px solid var(--primary); outline-offset: 1px; }
 .skin-swatch { height: 46px; border-radius: 9px; margin-bottom: 0.55rem; }
 .skin-swatch-almanac { background: #ffd23f; border: 2px solid #17161c; box-shadow: 3px 3px 0 #17161c; }
 .skin-swatch-glass { background: linear-gradient(135deg, rgba(120, 170, 255, 0.8), rgba(186, 150, 255, 0.65)); border: 1px solid rgba(255, 255, 255, 0.75); box-shadow: 0 6px 16px rgba(40, 55, 90, 0.22); }
+.skin-swatch-retro { background: linear-gradient(#000080 0 34%, #c0c0c0 34% 100%); border-radius: 0; border: 2px solid; border-color: #ffffff #808080 #808080 #ffffff; }
 .skin-name { font-family: var(--font-display); font-weight: 700; }
 .skin-desc { font-size: 0.82rem; color: var(--muted); }
 .mode-btn { flex: 1; font-family: var(--font-display); font-weight: 600; padding: 0.5rem; border: 2px solid transparent; background: transparent; color: var(--muted); border-radius: 8px; cursor: pointer; }
