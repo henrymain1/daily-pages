@@ -363,6 +363,73 @@
 
     renderCalendar();
     renderList();
+    updatePager();
+  }
+
+  // ---- Page-flip day navigation ---------------------------------------------
+  let flipping = false;
+  function dateDiffDays(a, b) { return Math.round((parseDate(a) - parseDate(b)) / 86400000); }
+  function dayOfYear(ds) { const d = parseDate(ds); const start = new Date(d.getFullYear(), 0, 0); return Math.round((d - start) / 86400000); }
+  function daysInYear(y) { return ((y % 4 === 0 && y % 100 !== 0) || y % 400 === 0) ? 366 : 365; }
+  function reducedMotion() { return window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches; }
+  function nbMobile() { return window.innerWidth <= 820; }
+
+  function updatePager() {
+    const lbl = $("#nb-page-label");
+    if (lbl) lbl.textContent = `Page ${dayOfYear(selectedDate)} of ${daysInYear(parseDate(selectedDate).getFullYear())}`;
+    const pn = $("#nb-page-num");
+    if (pn) pn.textContent = "p. " + dayOfYear(selectedDate);
+    const next = $("#day-next");
+    if (next) next.disabled = selectedDate >= todayStr();
+  }
+
+  // Turn to another day with a book page-flip (a riffle when jumping many days).
+  async function flipTo(target) {
+    if (flipping) return;
+    if (target > todayStr()) target = todayStr();
+    if (target === selectedDate) return;
+    await maybeFlush();
+    const back = target < selectedDate;
+    const diff = Math.abs(dateDiffDays(target, selectedDate));
+    calCursor = parseDate(target);
+    if (reducedMotion() || nbMobile() || currentView !== "journal") { openEditor(target); return; }
+    flipping = true;
+    const leaves = Math.min(Math.max(diff, 1), 6);
+    try { await runFlip(back, leaves, () => openEditor(target)); }
+    finally { flipping = false; }
+  }
+
+  function runFlip(back, k, applyContent) {
+    const spread = $("#nb-spread");
+    const src = back ? $("#nb-page-left") : $("#nb-page-right");
+    if (!spread || !src) { applyContent(); return Promise.resolve(); }
+    const inner = src.querySelector(".nb-page-inner");
+    const outHTML = inner ? inner.outerHTML : src.innerHTML;
+    const made = [];
+    for (let i = 0; i < k; i++) {
+      const leaf = el("div", { className: "flip-leaf " + (back ? "is-back" : "is-fwd") });
+      const front = el("div", { className: "flip-face flip-face-front" });
+      const backf = el("div", { className: "flip-face flip-face-back" });
+      if (i === 0) {
+        front.innerHTML = outHTML;
+        // avoid transient duplicate IDs while the clone is on-screen
+        front.querySelectorAll("[id]").forEach((n) => n.removeAttribute("id"));
+      }
+      leaf.append(front, backf);
+      spread.append(leaf);
+      made.push(leaf);
+    }
+    applyContent(); // real pages now show the target day, behind the turning leaves
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      made.forEach((leaf, i) => { leaf.style.transitionDelay = (i * 65) + "ms"; leaf.classList.add("turned"); });
+    }));
+    return new Promise((resolve) => {
+      const last = made[made.length - 1];
+      let done = false;
+      const finish = () => { if (done) return; done = true; made.forEach((l) => l.remove()); resolve(); };
+      last.addEventListener("transitionend", (e) => { if (e.propertyName === "transform") finish(); }, { once: true });
+      setTimeout(finish, 700 + k * 65 + 250); // safety net if transitionend is missed
+    });
   }
 
   function renderFeed() {
@@ -458,7 +525,7 @@
         cell.classList.add("future");
         cell.disabled = true;
       } else {
-        cell.addEventListener("click", async () => { await maybeFlush(); openEditor(ds); });
+        cell.addEventListener("click", () => flipTo(ds));
       }
       grid.append(cell);
     }
@@ -466,8 +533,10 @@
 
   // ---- Entries list ---------------------------------------------------------
   function renderList() {
-    const q = ($("#search").value || "").toLowerCase().trim();
     const list = $("#entries-list");
+    if (!list) return;
+    const searchEl = $("#search");
+    const q = (searchEl ? searchEl.value || "" : "").toLowerCase().trim();
     list.innerHTML = "";
 
     let items = allEntries.filter((e) => sectionsOf(e).length > 0);
@@ -494,11 +563,7 @@
       item.append(el("div", { className: "entry-item-title", textContent: firstLine(dt) || "(no text)" }));
       const preview = dt.replace(/\s+/g, " ").trim();
       item.append(el("div", { className: "entry-item-preview", textContent: (secN > 1 ? secN + " entries · " : "") + preview.slice(0, 90) }));
-      item.addEventListener("click", async () => {
-        await maybeFlush();
-        calCursor = parseDate(e.entry_date);
-        openEditor(e.entry_date);
-      });
+      item.addEventListener("click", () => flipTo(e.entry_date));
       list.append(item);
     }
   }
@@ -752,7 +817,7 @@
   }
   function toggleReader() {
     readerMode = !readerMode;
-    const btn = $("#reader-btn"); if (btn) btn.textContent = readerMode ? "✎ Write" : "📖 Read";
+    const btn = $("#reader-btn"); if (btn) { btn.textContent = readerMode ? "Write" : "Read"; btn.classList.toggle("ic-book", !readerMode); btn.classList.toggle("ic-edit", readerMode); }
     if (readerMode) renderReader();
     applyViews();
     if (!readerMode) { const ci = $("#compose-input"); if (ci) ci.focus(); }
@@ -1269,11 +1334,12 @@
     $("#reader-btn").addEventListener("click", toggleReader);
     $("#reader-exit").addEventListener("click", toggleReader);
     $("#back-today").addEventListener("click", async () => {
-      await maybeFlush();
-      calCursor = new Date();
-      openEditor(todayStr());
-      $("#compose-input").focus();
+      await flipTo(todayStr());
+      const ci = $("#compose-input"); if (ci) ci.focus({ preventScroll: true });
     });
+    // page-flip day navigation
+    { const dp = $("#day-prev"); if (dp) dp.addEventListener("click", () => flipTo(addDays(selectedDate, -1))); }
+    { const dn = $("#day-next"); if (dn) dn.addEventListener("click", () => flipTo(addDays(selectedDate, 1))); }
 
     // sidebar
     $("#export-btn").addEventListener("click", exportEntries);
