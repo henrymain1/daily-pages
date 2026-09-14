@@ -10,10 +10,11 @@ create table if not exists public.lists (
   user_id     uuid        not null references auth.users (id) on delete cascade default auth.uid(),
   title       text        not null default '',
   items       jsonb       not null default '[]'::jsonb,   -- [{ id, text, done }]
-  x           int         not null default 0,
-  y           int         not null default 0,
-  w           int         not null default 3,
-  h           int         not null default 4,
+  -- x/y/w/h are pixel position + size of the window on the free-form canvas
+  x           int         not null default 24,
+  y           int         not null default 24,
+  w           int         not null default 300,
+  h           int         not null default 280,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );

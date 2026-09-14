@@ -945,9 +945,12 @@
   // ---- Lists (dashboard) ----------------------------------------------------
   let lists = [];
   let listsLoaded = false;
-  let grid = null;
-  const listTimers = {};
-  let layoutTimer = null;
+  const listTimers = {};     // per-list content-save debounce
+  const layoutTimers = {};   // per-list position/size-save debounce
+  let zTop = 10;             // running z-index for click-to-front
+  let listsWasDesktop = null;
+  const LISTS_MIN = 768;     // below this, widgets stack instead of free-floating
+  const isDesktopLists = () => window.innerWidth >= LISTS_MIN;
 
   async function ensureLists() {
     if (listsLoaded) return;
@@ -972,72 +975,147 @@
     listsLoaded = true;
   }
 
-  const GRID_MIN = 768; // below this, drag/resize is disabled and widgets stack
+  // x/y = pixel offset of the window inside the canvas; w/h = pixel size.
+  function normPos(list) {
+    list.w = Math.max(200, Math.round(list.w) || 300);
+    list.h = Math.max(150, Math.round(list.h) || 280);
+    list.x = Math.max(0, Math.round(list.x) || 0);
+    list.y = Math.max(0, Math.round(list.y) || 0);
+  }
 
   function renderLists() {
     const gridEl = $("#lists-grid");
     $("#lists-empty").hidden = lists.length > 0;
-    if (grid) { try { grid.destroy(false); } catch (e) {} grid = null; }
     gridEl.innerHTML = "";
-    // GridStack's dashboard (drag/resize) is a desktop interaction; on narrow
-    // screens fall back to a clean single-column stack that just reads/checks.
-    const useGrid = !!window.GridStack && window.innerWidth >= GRID_MIN;
-    listsWasGrid = useGrid;
-    gridEl.classList.toggle("lists-fallback", !useGrid);
-    for (const list of lists) gridEl.appendChild(buildListItem(list));
-    if (useGrid) {
-      grid = GridStack.init({
-        column: 12, cellHeight: 62, margin: 8, handle: ".widget-drag",
-        resizable: { handles: "e, se, s" }, float: false, animate: true,
-      }, gridEl);
-      grid.on("change", scheduleLayoutSave);
+    const desktop = isDesktopLists();
+    listsWasDesktop = desktop;
+    // desktop = free-floating "windows on a desktop"; mobile = a tidy stack
+    gridEl.classList.toggle("lists-canvas", desktop);
+    gridEl.classList.toggle("lists-stack", !desktop);
+    gridEl.style.minHeight = "";
+    for (const list of lists) {
+      const winEl = buildWidget(list);
+      if (desktop) {
+        normPos(list);
+        winEl.style.left = list.x + "px";
+        winEl.style.top = list.y + "px";
+        winEl.style.width = list.w + "px";
+        winEl.style.height = list.h + "px";
+        winEl.style.zIndex = ++zTop;
+        makeDraggable(winEl, list);
+        makeResizable(winEl, list);
+      }
+      gridEl.appendChild(winEl);
     }
+    if (desktop) updateCanvasHeight();
+  }
+
+  // Grow the canvas so the lowest window is always reachable + scrollable.
+  function updateCanvasHeight() {
+    const gridEl = $("#lists-grid");
+    if (!isDesktopLists()) { gridEl.style.minHeight = ""; return; }
+    let maxB = 0;
+    for (const l of lists) maxB = Math.max(maxB, (l.y || 0) + (l.h || 280));
+    gridEl.style.minHeight = (maxB + 48) + "px";
   }
 
   // Re-render when we cross the desktop/mobile boundary (debounced).
-  let listsWasGrid = null;
   function onListsResize() {
     if (currentView !== "lists" || !listsLoaded) return;
-    const shouldGrid = !!window.GridStack && window.innerWidth >= GRID_MIN;
-    if (shouldGrid !== listsWasGrid) { listsWasGrid = shouldGrid; renderLists(); }
+    const d = isDesktopLists();
+    if (d !== listsWasDesktop) { listsWasDesktop = d; renderLists(); }
   }
 
-  function stopDrag(node) {
-    node.addEventListener("pointerdown", (e) => e.stopPropagation());
-    node.addEventListener("mousedown", (e) => e.stopPropagation());
+  function bringToFront(winEl) { winEl.style.zIndex = ++zTop; }
+
+  // Free-form drag by the title bar (ignores clicks on the title field / buttons).
+  function makeDraggable(winEl, list) {
+    const head = winEl.querySelector(".list-widget-head");
+    head.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0 || !isDesktopLists()) return;
+      if (e.target.closest("input, button, textarea, a")) return;
+      bringToFront(winEl);
+      const sx = e.clientX, sy = e.clientY, ox = list.x, oy = list.y;
+      const canvasW = $("#lists-grid").clientWidth;
+      winEl.classList.add("dragging");
+      try { head.setPointerCapture(e.pointerId); } catch (_) {}
+      const move = (ev) => {
+        let nx = Math.max(0, Math.min(ox + (ev.clientX - sx), Math.max(0, canvasW - 48)));
+        let ny = Math.max(0, oy + (ev.clientY - sy));
+        list.x = nx; list.y = ny;
+        winEl.style.left = nx + "px"; winEl.style.top = ny + "px";
+      };
+      const up = () => {
+        head.removeEventListener("pointermove", move);
+        head.removeEventListener("pointerup", up);
+        try { head.releasePointerCapture(e.pointerId); } catch (_) {}
+        winEl.classList.remove("dragging");
+        updateCanvasHeight(); scheduleLayoutSave(list);
+      };
+      head.addEventListener("pointermove", move);
+      head.addEventListener("pointerup", up);
+      e.preventDefault();
+    });
   }
 
-  function buildListItem(list) {
-    const item = el("div", { className: "grid-stack-item" });
-    item.setAttribute("gs-id", list.id);
-    item.setAttribute("gs-x", list.x ?? 0);
-    item.setAttribute("gs-y", list.y ?? 0);
-    item.setAttribute("gs-w", list.w ?? 3);
-    item.setAttribute("gs-h", list.h ?? 4);
-    const content = el("div", { className: "grid-stack-item-content" });
-    content.appendChild(buildWidget(list));
-    item.appendChild(content);
-    return item;
+  // Corner-handle resize.
+  function makeResizable(winEl, list) {
+    const handle = winEl.querySelector(".list-resize");
+    handle.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0 || !isDesktopLists()) return;
+      e.stopPropagation();
+      bringToFront(winEl);
+      const sx = e.clientX, sy = e.clientY, ow = list.w, oh = list.h;
+      winEl.classList.add("dragging");
+      try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+      const move = (ev) => {
+        list.w = Math.max(200, ow + (ev.clientX - sx));
+        list.h = Math.max(150, oh + (ev.clientY - sy));
+        winEl.style.width = list.w + "px"; winEl.style.height = list.h + "px";
+      };
+      const up = () => {
+        handle.removeEventListener("pointermove", move);
+        handle.removeEventListener("pointerup", up);
+        try { handle.releasePointerCapture(e.pointerId); } catch (_) {}
+        winEl.classList.remove("dragging");
+        updateCanvasHeight(); scheduleLayoutSave(list);
+      };
+      handle.addEventListener("pointermove", move);
+      handle.addEventListener("pointerup", up);
+      e.preventDefault();
+    });
   }
 
   function buildWidget(list) {
     if (!Array.isArray(list.items)) list.items = [];
-    const wrap = el("div", { className: "list-widget card" });
+    const wrap = el("div", { className: "list-window card" });
+    wrap.dataset.id = list.id;
+    wrap.addEventListener("pointerdown", () => { if (isDesktopLists()) bringToFront(wrap); }, true);
     const head = el("div", { className: "list-widget-head widget-drag" });
-    const title = el("input", { className: "list-title", value: list.title || "", placeholder: "List title" });
-    title.addEventListener("input", () => { list.title = title.value; scheduleListSave(list); });
-    stopDrag(title);
+    // Title is a label you can drag the whole bar by; double-click (or tap on
+    // mobile) turns it into an input to rename — like renaming a window.
+    const titleWrap = el("div", { className: "list-title-wrap" });
+    const titleLabel = el("span", { className: "list-title", textContent: list.title || "Untitled list", title: "Double-click to rename" });
+    const titleInput = el("input", { className: "list-title-edit", value: list.title || "", hidden: true, "aria-label": "List title" });
+    const beginEdit = () => { titleInput.value = list.title || ""; titleLabel.hidden = true; titleInput.hidden = false; titleInput.focus(); titleInput.select(); };
+    const endEdit = () => { list.title = titleInput.value.trim(); titleLabel.textContent = list.title || "Untitled list"; titleInput.hidden = true; titleLabel.hidden = false; scheduleListSave(list); };
+    titleLabel.addEventListener("dblclick", beginEdit);
+    titleLabel.addEventListener("click", () => { if (!isDesktopLists()) beginEdit(); });
+    titleInput.addEventListener("blur", endEdit);
+    titleInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); titleInput.blur(); }
+      else if (e.key === "Escape") { titleInput.value = list.title || ""; titleInput.blur(); }
+    });
+    titleWrap.append(titleLabel, titleInput);
     const del = el("button", { className: "list-del", type: "button", title: "Delete list", textContent: "✕" });
     del.addEventListener("click", () => deleteList(list));
-    stopDrag(del);
-    head.append(title, del);
+    head.append(titleWrap, del);
 
     const itemsWrap = el("div", { className: "list-items" });
     renderListItems(list, itemsWrap);
 
     const addForm = el("form", { className: "list-add" });
     const addInput = el("input", { className: "list-add-input2", placeholder: "Add an item…", autocomplete: "off" });
-    stopDrag(addInput);
     addForm.append(addInput);
     addForm.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -1046,7 +1124,8 @@
       addInput.value = ""; renderListItems(list, itemsWrap); scheduleListSave(list);
     });
 
-    wrap.append(head, itemsWrap, addForm);
+    const resize = el("div", { className: "list-resize", title: "Drag to resize" });
+    wrap.append(head, itemsWrap, addForm, resize);
     return wrap;
   }
 
@@ -1056,13 +1135,10 @@
       const row = el("div", { className: "list-item" + (it.done ? " done" : "") });
       const cb = el("button", { className: "list-check" + (it.done ? " checked" : ""), type: "button", title: it.done ? "Uncheck" : "Check" });
       cb.addEventListener("click", () => { it.done = !it.done; renderListItems(list, container); scheduleListSave(list); });
-      stopDrag(cb);
       const txt = el("input", { className: "list-item-text", value: it.text });
       txt.addEventListener("input", () => { it.text = txt.value; scheduleListSave(list); });
-      stopDrag(txt);
       const d = el("button", { className: "list-item-del", type: "button", title: "Remove", textContent: "✕" });
       d.addEventListener("click", () => { list.items = list.items.filter((x) => x !== it); renderListItems(list, container); scheduleListSave(list); });
-      stopDrag(d);
       row.append(cb, txt, d);
       container.append(row);
     }
@@ -1070,7 +1146,10 @@
 
   async function newList() {
     if (!listsLoaded || !currentUser) return;
-    const row = { user_id: currentUser.id, title: "New list", items: [], x: 0, y: 0, w: 3, h: 4, updated_at: new Date().toISOString() };
+    const i = lists.length, col = i % 3, rw = Math.floor(i / 3);
+    const row = { user_id: currentUser.id, title: "New list", items: [],
+      x: 24 + col * 328, y: 24 + rw * 300, w: 300, h: 280,
+      updated_at: new Date().toISOString() };
     const { data, error } = await sb.from("lists").insert(row).select().single();
     if (error) { toast("Couldn't create list: " + error.message); return; }
     lists.push(data);
@@ -1094,24 +1173,14 @@
     if (error) toast("List save failed: " + error.message);
   }
 
-  function scheduleLayoutSave() { clearTimeout(layoutTimer); layoutTimer = setTimeout(saveLayout, 500); }
-  async function saveLayout() {
-    if (!grid) return;
-    // In the mobile (1-column) breakpoint GridStack reflows widgets on its own;
-    // don't let that transient layout overwrite the saved desktop positions.
-    if (grid.getColumn() !== 12) return;
-    for (const itemEl of grid.getGridItems()) {
-      const id = itemEl.getAttribute("gs-id");
-      const node = itemEl.gridstackNode;
-      if (!id || !node) continue;
-      const list = lists.find((l) => String(l.id) === id);
-      if (!list) continue;
-      const { x, y, w, h } = node;
-      if (list.x === x && list.y === y && list.w === w && list.h === h) continue;
-      list.x = x; list.y = y; list.w = w; list.h = h;
-      const { error } = await sb.from("lists").update({ x, y, w, h }).eq("id", list.id);
-      if (error) { toast("Layout save failed: " + error.message); break; }
-    }
+  function scheduleLayoutSave(list) {
+    clearTimeout(layoutTimers[list.id]);
+    layoutTimers[list.id] = setTimeout(() => saveLayout(list), 400);
+  }
+  async function saveLayout(list) {
+    const x = Math.round(list.x), y = Math.round(list.y), w = Math.round(list.w), h = Math.round(list.h);
+    const { error } = await sb.from("lists").update({ x, y, w, h }).eq("id", list.id);
+    if (error) toast("Layout save failed: " + error.message);
   }
 
   // ---- App enter / exit -----------------------------------------------------
@@ -1148,7 +1217,7 @@
     byDate.clear();
     planItems = []; planFocus = ""; plansLoaded = false; plansByDate.clear(); planDirty = false; currentView = "journal";
     curSections = []; readerMode = false;
-    lists = []; listsLoaded = false; if (grid) { try { grid.destroy(false); } catch (e) {} grid = null; }
+    lists = []; listsLoaded = false; listsWasDesktop = null;
     { const tog = $("#view-toggle"); if (tog) { tog.dataset.view = "journal"; tog.setAttribute("aria-checked", "false"); } }
     $("#app-view").hidden = true;
     $("#auth-view").hidden = true;
