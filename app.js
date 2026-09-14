@@ -30,11 +30,7 @@
   }
   function applyTheme(t) {
     document.documentElement.setAttribute("data-theme", t);
-    const icon = t === "dark" ? "☀️" : "🌙";
-    const a = $("#theme-toggle"), b = $("#auth-theme"), c = $("#landing-theme");
-    if (a) a.textContent = icon;
-    if (b) b.textContent = icon;
-    if (c) c.textContent = icon;
+    // theme-toggle icons are masked CSS (.ic-theme) that swap on [data-theme]
     try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
   }
   (function initTheme() {
@@ -46,7 +42,7 @@
 
   // ---- Skin (visual theme) --------------------------------------------------
   const SKIN_KEY = "dp-skin";
-  function currentSkin() { return document.documentElement.getAttribute("data-skin") || "almanac"; }
+  function currentSkin() { return document.documentElement.getAttribute("data-skin") || "editorial"; }
   function applySkin(skin) {
     document.documentElement.setAttribute("data-skin", skin);
     try { localStorage.setItem(SKIN_KEY, skin); } catch (e) {}
@@ -59,9 +55,15 @@
   function openSettings() { $("#settings-view").hidden = false; refreshSettingsUI(); }
   function closeSettings() { $("#settings-view").hidden = true; }
   (function initSkin() {
-    let s = "almanac";
-    try { s = localStorage.getItem(SKIN_KEY) || "almanac"; } catch (e) {}
+    let s = "editorial";
+    try { s = localStorage.getItem(SKIN_KEY) || "editorial"; } catch (e) {}
     document.documentElement.setAttribute("data-skin", s);
+  })();
+
+  (function initMastheadDate() {
+    const e = document.getElementById("masthead-date");
+    if (!e) return;
+    e.textContent = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
   })();
 
   // ---- Date utils (local time, timezone-safe strings) -----------------------

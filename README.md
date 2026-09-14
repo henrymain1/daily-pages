@@ -92,7 +92,7 @@ Your API key lives only as a Supabase secret — never in the website. Entries f
 | File | What it is |
 |------|------------|
 | `index.html` | Page structure |
-| `styles.css` | Styling + three switchable skins: Almanac (neo-brutalist), Liquid Glass, Retro 95 |
+| `styles.css` | Styling + four switchable skins: Editorial (default), Almanac (neo-brutalist), Liquid Glass, Retro 95 |
 | `app.js` | App logic (auth, journal log, reader, planner, calendar, insights, export) |
 | `config.js` | Supabase URL + publishable key + optional AI function URL |
 | `supabase-setup.sql` | Journal table (`entries`) + Row Level Security |

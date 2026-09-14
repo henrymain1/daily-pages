@@ -8,7 +8,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%96%3C/text%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -16,7 +16,7 @@
   <!-- ============ Setup notice (shown until config.js is filled in) ============ -->
   <div id="setup-notice" class="overlay" hidden>
     <div class="card overlay-card">
-      <div class="brand"><span class="brand-mark">📖</span><span>Daily Pages</span></div>
+      <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>Daily Pages</span></div>
       <h1>Almost there!</h1>
       <p class="muted">Add your Supabase keys to <code>config.js</code>, then refresh this page.</p>
       <ol class="steps">
@@ -31,46 +31,56 @@
   <!-- ============ Landing (marketing) ============ -->
   <div id="landing-view" class="landing" hidden>
     <header class="landing-nav">
-      <div class="brand"><span class="brand-mark">📖</span><span>Daily Pages</span></div>
+      <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>Daily Pages</span></div>
       <div class="landing-nav-actions">
-        <button id="landing-theme" class="icon-btn" type="button" title="Toggle light / dark">🌙</button>
+        <button id="landing-theme" class="icon-btn ic ic-theme" type="button" title="Toggle light / dark" aria-label="Toggle light / dark"></button>
         <button class="btn btn-ghost landing-login" type="button">Log in</button>
         <button class="btn btn-primary landing-start" type="button">Get started</button>
       </div>
     </header>
 
-    <section class="hero">
-      <div class="hero-badge">Your private daily journal &amp; planner</div>
-      <h1 class="hero-title">Write your days.<br />See your patterns.</h1>
-      <p class="hero-sub">A calm place to journal whenever the moment hits, plan your day, and get a gentle weekly reflection on where your head has been.</p>
-      <div class="hero-cta">
-        <button class="btn btn-primary btn-lg landing-start" type="button">Start journaling — free</button>
-        <button class="btn btn-lg landing-login" type="button">I have an account</button>
+    <!-- Masthead: the front page of your almanac -->
+    <section class="masthead">
+      <div class="masthead-rule" aria-hidden="true"></div>
+      <p class="masthead-line"><span>A private daily almanac</span><span id="masthead-date" class="masthead-date"></span></p>
+      <div class="masthead-main">
+        <div class="masthead-lede">
+          <h1 class="masthead-title">Write your days.<br /><em>See your patterns.</em></h1>
+          <p class="masthead-sub">A quiet place to journal whenever the moment hits, plan the day ahead, and read the week back in a short reflection. Yours alone.</p>
+          <div class="masthead-cta">
+            <button class="btn btn-primary btn-lg landing-start" type="button">Start writing</button>
+            <button class="btn btn-lg landing-login" type="button">I have an account</button>
+          </div>
+        </div>
+        <aside class="masthead-aside">
+          <div class="masthead-aside-label">Today's temper</div>
+          <div class="hero-moods" id="hero-moods" aria-hidden="true"></div>
+          <p class="masthead-aside-note">Mark how the day felt — and watch the weeks take shape.</p>
+        </aside>
       </div>
-      <div class="hero-moods" id="hero-moods" aria-hidden="true"></div>
     </section>
 
-    <section class="features">
-      <div class="feature-card">
-        <div class="feature-icon">📝</div>
-        <h3>Journal on your time</h3>
-        <p>Jot a thought whenever it strikes — every entry is timestamped and saved to your day. Come back tonight, tomorrow, whenever.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">✅</div>
-        <h3>Plan your day</h3>
-        <p>A simple daily planner with a focus and a checklist — subtasks included. Flip back through past days anytime.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">📊</div>
-        <h3>See your patterns</h3>
-        <p>Mood trends, streaks, and a weekly review that shows how the days actually went.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">✨</div>
-        <h3>Weekly reflection</h3>
-        <p>Each week, a short and calm reflection on your entries — a quiet mirror that helps you notice what mattered.</p>
-      </div>
+    <!-- Contents: the sections, laid out as an edition index -->
+    <section class="edition">
+      <div class="edition-head"><h2>In this edition</h2><span class="edition-rule" aria-hidden="true"></span></div>
+      <ol class="edition-list">
+        <li class="edition-item">
+          <span class="edition-num">01</span>
+          <div class="edition-body"><h3>Journal on your time</h3><p>Jot a thought whenever it strikes — every entry is timestamped and filed to its day. Come back tonight, tomorrow, whenever.</p></div>
+        </li>
+        <li class="edition-item">
+          <span class="edition-num">02</span>
+          <div class="edition-body"><h3>Plan the day ahead</h3><p>A single focus and a checklist with subtasks. Flip back through past days any time.</p></div>
+        </li>
+        <li class="edition-item">
+          <span class="edition-num">03</span>
+          <div class="edition-body"><h3>See the patterns</h3><p>Mood trends, streaks, and a monthly review that shows how the days actually went.</p></div>
+        </li>
+        <li class="edition-item">
+          <span class="edition-num">04</span>
+          <div class="edition-body"><h3>Read the week back</h3><p>Each week, a short, calm reflection on your entries — a quiet mirror for what mattered.</p></div>
+        </li>
+      </ol>
     </section>
 
     <section class="landing-cta">
@@ -79,7 +89,7 @@
     </section>
 
     <footer class="landing-foot">
-      <span><span class="brand-mark">📖</span>&nbsp;Daily Pages</span>
+      <span class="foot-brand"><span class="brand-mark" aria-hidden="true"></span>Daily Pages</span>
       <span>Your entries are private to you.</span>
     </footer>
   </div>
@@ -88,7 +98,7 @@
   <div id="auth-view" class="auth-wrap" hidden>
     <button id="auth-back" class="btn btn-ghost auth-back" type="button">← Back</button>
     <form id="auth-form" class="card auth-card" autocomplete="on">
-      <div class="brand"><span class="brand-mark">📖</span><span>Daily Pages</span></div>
+      <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>Daily Pages</span></div>
       <p class="tagline">A quiet place to write, one day at a time.</p>
 
       <div class="seg" role="tablist">
@@ -108,7 +118,7 @@
       <button id="auth-submit" class="btn btn-primary btn-block" type="submit">Log in</button>
       <p id="auth-msg" class="msg" hidden></p>
     </form>
-    <button id="auth-theme" class="ghost-toggle" type="button" title="Toggle light / dark">🌙</button>
+    <button id="auth-theme" class="ghost-toggle ic ic-theme" type="button" title="Toggle light / dark" aria-label="Toggle light / dark"></button>
   </div>
 
   <!-- ============ App ============ -->
@@ -116,7 +126,7 @@
     <header class="appbar">
       <div class="topbar">
         <div class="topbar-left">
-          <div class="brand small"><span class="brand-mark">📖</span><span class="brand-name">Daily Pages</span></div>
+          <div class="brand small"><span class="brand-mark" aria-hidden="true"></span><span class="brand-name">Daily Pages</span></div>
         </div>
         <div class="view-toggle" id="view-toggle" role="tablist" aria-label="Switch pages" data-view="journal">
           <span class="view-toggle-thumb" aria-hidden="true"></span>
@@ -126,10 +136,10 @@
         </div>
         <div class="topbar-right">
           <div class="streak-badge" id="streak-badge" title="Current writing streak">🔥&nbsp;<span id="streak-num">0</span></div>
-          <button id="insights-btn" class="icon-btn" type="button" title="Insights &amp; review">📊</button>
-          <button id="export-btn" class="icon-btn" type="button" title="Export all entries (.md)">⬇️</button>
-          <button id="theme-toggle" class="icon-btn" type="button" title="Toggle light / dark">🌙</button>
-          <button id="settings-btn" class="icon-btn" type="button" title="Settings">⚙️</button>
+          <button id="insights-btn" class="icon-btn ic ic-chart" type="button" title="Insights &amp; review" aria-label="Insights &amp; review"></button>
+          <button id="export-btn" class="icon-btn ic ic-download" type="button" title="Export all entries (.md)" aria-label="Export all entries"></button>
+          <button id="theme-toggle" class="icon-btn ic ic-theme" type="button" title="Toggle light / dark" aria-label="Toggle light / dark"></button>
+          <button id="settings-btn" class="icon-btn ic ic-settings" type="button" title="Settings" aria-label="Settings"></button>
           <div class="user-menu">
             <div id="user-avatar" class="avatar" title=""></div>
             <button id="logout-btn" class="btn btn-ghost" type="button">Log out</button>
@@ -147,7 +157,7 @@
             <h2 id="entry-date" class="entry-date">—</h2>
           </div>
           <div class="editor-head-actions">
-            <button id="reader-btn" class="btn btn-ghost" type="button" title="Reader mode">📖 Read</button>
+            <button id="reader-btn" class="btn btn-ghost ic ic-book" type="button" title="Reader mode">Read</button>
             <button id="back-today" class="btn btn-ghost" type="button" hidden>← Today</button>
           </div>
         </div>
@@ -317,6 +327,11 @@
               <span class="skin-swatch skin-swatch-retro"></span>
               <span class="skin-name">Retro 95</span>
               <span class="skin-desc">Classic desktop</span>
+            </button>
+            <button class="skin-option" type="button" data-skin="editorial">
+              <span class="skin-swatch skin-swatch-editorial"></span>
+              <span class="skin-name">Editorial</span>
+              <span class="skin-desc">Almanac &amp; ink</span>
             </button>
           </div>
         </div>
