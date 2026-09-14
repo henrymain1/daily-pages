@@ -746,6 +746,7 @@
     $("#planner-view").hidden = currentView !== "planner";
     $("#journal-view").hidden = !(currentView === "journal" && !readerMode);
     const rv = $("#reader-view"); if (rv) rv.hidden = !(currentView === "journal" && readerMode);
+    const lv = $("#lists-view"); if (lv) lv.hidden = currentView !== "lists";
   }
   function toggleReader() {
     readerMode = !readerMode;
@@ -785,12 +786,13 @@
     try { localStorage.setItem("dp-view", view); } catch (e) {}
     // flip the toggle + swap views immediately so the pill animates right away
     const tog = $("#view-toggle");
-    if (tog) { tog.dataset.view = view; tog.setAttribute("aria-checked", view === "planner" ? "true" : "false"); }
+    if (tog) tog.dataset.view = view;
     applyViews();
     // then persist the page we left and load the one we entered
     if (prev === "journal") await maybeFlush();
     if (prev === "planner") await savePlanNow();
     if (view === "planner") await ensurePlan();
+    if (view === "lists") await ensureLists();
   }
 
   async function ensurePlan() {
@@ -940,6 +942,178 @@
     planDirty = false; setPlanStatus("Saved ✓", true);
   }
 
+  // ---- Lists (dashboard) ----------------------------------------------------
+  let lists = [];
+  let listsLoaded = false;
+  let grid = null;
+  const listTimers = {};
+  let layoutTimer = null;
+
+  async function ensureLists() {
+    if (listsLoaded) return;
+    await loadAllLists();
+    if (!listsLoaded) return;
+    renderLists();
+  }
+
+  async function loadAllLists() {
+    const { data, error } = await sb.from("lists").select("*").order("created_at", { ascending: true });
+    if (error) {
+      const info = `${error.message || ""} ${error.code || ""} ${error.details || ""}`;
+      if (/lists|schema cache|does not exist|42P01|PGRST2\d\d/i.test(info)) {
+        $("#lists-grid").hidden = true; $("#lists-empty").hidden = true; $("#list-add-btn").disabled = true;
+        const s = $("#lists-setup"); s.hidden = false;
+        s.innerHTML = "<strong>One quick setup step 🛠️</strong><br>Lists need a small database table. In Supabase → <strong>SQL Editor</strong>, run the SQL from <code>supabase-lists.sql</code>, then reload this page.";
+      } else { toast("Couldn't load lists: " + error.message); }
+      return;
+    }
+    $("#lists-setup").hidden = true; $("#lists-grid").hidden = false; $("#list-add-btn").disabled = false;
+    lists = data || [];
+    listsLoaded = true;
+  }
+
+  const GRID_MIN = 768; // below this, drag/resize is disabled and widgets stack
+
+  function renderLists() {
+    const gridEl = $("#lists-grid");
+    $("#lists-empty").hidden = lists.length > 0;
+    if (grid) { try { grid.destroy(false); } catch (e) {} grid = null; }
+    gridEl.innerHTML = "";
+    // GridStack's dashboard (drag/resize) is a desktop interaction; on narrow
+    // screens fall back to a clean single-column stack that just reads/checks.
+    const useGrid = !!window.GridStack && window.innerWidth >= GRID_MIN;
+    listsWasGrid = useGrid;
+    gridEl.classList.toggle("lists-fallback", !useGrid);
+    for (const list of lists) gridEl.appendChild(buildListItem(list));
+    if (useGrid) {
+      grid = GridStack.init({
+        column: 12, cellHeight: 62, margin: 8, handle: ".widget-drag",
+        resizable: { handles: "e, se, s" }, float: false, animate: true,
+      }, gridEl);
+      grid.on("change", scheduleLayoutSave);
+    }
+  }
+
+  // Re-render when we cross the desktop/mobile boundary (debounced).
+  let listsWasGrid = null;
+  function onListsResize() {
+    if (currentView !== "lists" || !listsLoaded) return;
+    const shouldGrid = !!window.GridStack && window.innerWidth >= GRID_MIN;
+    if (shouldGrid !== listsWasGrid) { listsWasGrid = shouldGrid; renderLists(); }
+  }
+
+  function stopDrag(node) {
+    node.addEventListener("pointerdown", (e) => e.stopPropagation());
+    node.addEventListener("mousedown", (e) => e.stopPropagation());
+  }
+
+  function buildListItem(list) {
+    const item = el("div", { className: "grid-stack-item" });
+    item.setAttribute("gs-id", list.id);
+    item.setAttribute("gs-x", list.x ?? 0);
+    item.setAttribute("gs-y", list.y ?? 0);
+    item.setAttribute("gs-w", list.w ?? 3);
+    item.setAttribute("gs-h", list.h ?? 4);
+    const content = el("div", { className: "grid-stack-item-content" });
+    content.appendChild(buildWidget(list));
+    item.appendChild(content);
+    return item;
+  }
+
+  function buildWidget(list) {
+    if (!Array.isArray(list.items)) list.items = [];
+    const wrap = el("div", { className: "list-widget card" });
+    const head = el("div", { className: "list-widget-head widget-drag" });
+    const title = el("input", { className: "list-title", value: list.title || "", placeholder: "List title" });
+    title.addEventListener("input", () => { list.title = title.value; scheduleListSave(list); });
+    stopDrag(title);
+    const del = el("button", { className: "list-del", type: "button", title: "Delete list", textContent: "✕" });
+    del.addEventListener("click", () => deleteList(list));
+    stopDrag(del);
+    head.append(title, del);
+
+    const itemsWrap = el("div", { className: "list-items" });
+    renderListItems(list, itemsWrap);
+
+    const addForm = el("form", { className: "list-add" });
+    const addInput = el("input", { className: "list-add-input2", placeholder: "Add an item…", autocomplete: "off" });
+    stopDrag(addInput);
+    addForm.append(addInput);
+    addForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const t = addInput.value.trim(); if (!t) return;
+      list.items.push({ id: uid(), text: t, done: false });
+      addInput.value = ""; renderListItems(list, itemsWrap); scheduleListSave(list);
+    });
+
+    wrap.append(head, itemsWrap, addForm);
+    return wrap;
+  }
+
+  function renderListItems(list, container) {
+    container.innerHTML = "";
+    for (const it of list.items) {
+      const row = el("div", { className: "list-item" + (it.done ? " done" : "") });
+      const cb = el("button", { className: "list-check" + (it.done ? " checked" : ""), type: "button", title: it.done ? "Uncheck" : "Check" });
+      cb.addEventListener("click", () => { it.done = !it.done; renderListItems(list, container); scheduleListSave(list); });
+      stopDrag(cb);
+      const txt = el("input", { className: "list-item-text", value: it.text });
+      txt.addEventListener("input", () => { it.text = txt.value; scheduleListSave(list); });
+      stopDrag(txt);
+      const d = el("button", { className: "list-item-del", type: "button", title: "Remove", textContent: "✕" });
+      d.addEventListener("click", () => { list.items = list.items.filter((x) => x !== it); renderListItems(list, container); scheduleListSave(list); });
+      stopDrag(d);
+      row.append(cb, txt, d);
+      container.append(row);
+    }
+  }
+
+  async function newList() {
+    if (!listsLoaded || !currentUser) return;
+    const row = { user_id: currentUser.id, title: "New list", items: [], x: 0, y: 0, w: 3, h: 4, updated_at: new Date().toISOString() };
+    const { data, error } = await sb.from("lists").insert(row).select().single();
+    if (error) { toast("Couldn't create list: " + error.message); return; }
+    lists.push(data);
+    renderLists();
+  }
+
+  async function deleteList(list) {
+    if (!confirm(`Delete "${list.title || "this list"}"? This can't be undone.`)) return;
+    const { error } = await sb.from("lists").delete().eq("id", list.id);
+    if (error) { toast("Delete failed: " + error.message); return; }
+    lists = lists.filter((l) => l !== list);
+    renderLists();
+  }
+
+  function scheduleListSave(list) {
+    clearTimeout(listTimers[list.id]);
+    listTimers[list.id] = setTimeout(() => saveListContent(list), 700);
+  }
+  async function saveListContent(list) {
+    const { error } = await sb.from("lists").update({ title: list.title, items: list.items, updated_at: new Date().toISOString() }).eq("id", list.id);
+    if (error) toast("List save failed: " + error.message);
+  }
+
+  function scheduleLayoutSave() { clearTimeout(layoutTimer); layoutTimer = setTimeout(saveLayout, 500); }
+  async function saveLayout() {
+    if (!grid) return;
+    // In the mobile (1-column) breakpoint GridStack reflows widgets on its own;
+    // don't let that transient layout overwrite the saved desktop positions.
+    if (grid.getColumn() !== 12) return;
+    for (const itemEl of grid.getGridItems()) {
+      const id = itemEl.getAttribute("gs-id");
+      const node = itemEl.gridstackNode;
+      if (!id || !node) continue;
+      const list = lists.find((l) => String(l.id) === id);
+      if (!list) continue;
+      const { x, y, w, h } = node;
+      if (list.x === x && list.y === y && list.w === w && list.h === h) continue;
+      list.x = x; list.y = y; list.w = w; list.h = h;
+      const { error } = await sb.from("lists").update({ x, y, w, h }).eq("id", list.id);
+      if (error) { toast("Layout save failed: " + error.message); break; }
+    }
+  }
+
   // ---- App enter / exit -----------------------------------------------------
   async function enterApp(user) {
     if (currentUser && currentUser.id === user.id && !$("#app-view").hidden) return;
@@ -974,6 +1148,7 @@
     byDate.clear();
     planItems = []; planFocus = ""; plansLoaded = false; plansByDate.clear(); planDirty = false; currentView = "journal";
     curSections = []; readerMode = false;
+    lists = []; listsLoaded = false; if (grid) { try { grid.destroy(false); } catch (e) {} grid = null; }
     { const tog = $("#view-toggle"); if (tog) { tog.dataset.view = "journal"; tog.setAttribute("aria-checked", "false"); } }
     $("#app-view").hidden = true;
     $("#auth-view").hidden = true;
@@ -1054,8 +1229,12 @@
     $("#summary-read").addEventListener("click", () => closeSummary(true));
     $("#summary-view").addEventListener("click", (e) => { if (e.target === $("#summary-view")) closeSummary(false); });
 
+    // page nav + lists
+    $$("#view-toggle .view-toggle-opt").forEach((b) => b.addEventListener("click", () => switchView(b.dataset.view)));
+    $("#list-add-btn").addEventListener("click", newList);
+    let listsResizeT = null;
+    window.addEventListener("resize", () => { clearTimeout(listsResizeT); listsResizeT = setTimeout(onListsResize, 200); });
     // planner
-    $("#view-toggle").addEventListener("click", () => switchView(currentView === "journal" ? "planner" : "journal"));
     $("#plan-focus").addEventListener("input", () => { planFocus = $("#plan-focus").value; schedulePlanSave(); });
     $("#plan-add-form").addEventListener("submit", (e) => { e.preventDefault(); const inp = $("#plan-add-input"); addTask(inp.value); inp.value = ""; inp.focus(); });
     $("#plan-prev").addEventListener("click", () => goToPlanDate(addDays(planDate, -1)));

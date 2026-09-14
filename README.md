@@ -57,8 +57,9 @@ and a database password, pick a region, and wait ~1–2 min.
 ### 2. Create the database tables
 Supabase → **SQL Editor** → **New query** → paste all of
 [`supabase-setup.sql`](supabase-setup.sql) → **Run**. Then run
-[`supabase-planner.sql`](supabase-planner.sql) the same way to enable the
-planner page.
+[`supabase-planner.sql`](supabase-planner.sql) and
+[`supabase-lists.sql`](supabase-lists.sql) the same way to enable the
+planner page and the Lists dashboard.
 
 ### 3. (Optional) Turn off email confirmation
 For instant login: **Authentication → Sign In / Providers → Email →
@@ -96,5 +97,6 @@ Your API key lives only as a Supabase secret — never in the website. Entries f
 | `config.js` | Supabase URL + publishable key + optional AI function URL |
 | `supabase-setup.sql` | Journal table (`entries`) + Row Level Security |
 | `supabase-planner.sql` | Planner table (`plans`) + Row Level Security |
+| `supabase-lists.sql` | Lists dashboard table (`lists`) + Row Level Security |
 | `supabase-summaries.sql` | Weekly-reflection table (`summaries`) + RLS |
 | `supabase/functions/weekly-summary/` | Edge Function that calls Claude Haiku |

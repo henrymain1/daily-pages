@@ -379,21 +379,24 @@ code {
 .view-toggle {
   position: relative; flex: 0 0 auto; display: inline-flex; align-items: center;
   border: 2px solid var(--edge); background: var(--surface-2); border-radius: 999px;
-  padding: 3px; cursor: pointer; user-select: none;
+  padding: 3px; user-select: none;
   font-family: var(--font-display); font-weight: 600; font-size: 0.9rem;
 }
 .view-toggle-thumb {
-  position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px);
+  position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(33.333% - 2px);
   background: var(--yellow); border: 2px solid var(--edge); border-radius: 999px; z-index: 0;
   transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .view-toggle[data-view="planner"] .view-toggle-thumb { transform: translateX(100%); }
+.view-toggle[data-view="lists"] .view-toggle-thumb { transform: translateX(200%); }
 .view-toggle-opt {
-  position: relative; z-index: 1; flex: 1 0 auto; text-align: center;
-  padding: 0.36rem 1.05rem; color: var(--muted); white-space: nowrap; transition: color 0.2s ease;
+  position: relative; z-index: 1; flex: 1 1 0; text-align: center;
+  padding: 0.36rem 0.85rem; border: none; background: transparent; cursor: pointer;
+  font: inherit; color: var(--muted); white-space: nowrap; transition: color 0.2s ease;
 }
 .view-toggle[data-view="journal"] .view-toggle-opt[data-view="journal"],
-.view-toggle[data-view="planner"] .view-toggle-opt[data-view="planner"] { color: #17161c; }
+.view-toggle[data-view="planner"] .view-toggle-opt[data-view="planner"],
+.view-toggle[data-view="lists"] .view-toggle-opt[data-view="lists"] { color: #17161c; }
 .avatar { width: 34px; height: 34px; flex: none; border-radius: 50%; border: 2px solid var(--edge); background: var(--primary); color: var(--primary-ink); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; box-shadow: var(--sh); }
 .streak-badge {
   display: inline-flex; align-items: center;
@@ -669,6 +672,40 @@ code {
 .reader-entry { margin-bottom: 1.3rem; }
 .reader-time { font-family: var(--font-display); font-weight: 700; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 0.3rem; }
 .reader-text { font-family: var(--font-body); font-size: 1.12rem; line-height: 1.75; white-space: pre-wrap; }
+
+/* ---------- Lists dashboard ---------- */
+.lists-page { max-width: 1120px; margin: 0 auto; padding: 1.2rem 1.1rem 3rem; }
+.lists-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.lists-title { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; margin: 0; }
+.lists-fallback { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.9rem; align-items: start; }
+/* Without GridStack's JS, its base CSS still forces items + their content
+   absolute (a 3-class selector, hence !important) — undo that so the widgets
+   flow in this CSS grid instead of collapsing to 0-height and overlapping. */
+.lists-fallback .grid-stack-item { position: relative; left: auto; top: auto; width: auto !important; height: auto !important; min-width: 0; transform: none; }
+.lists-fallback .grid-stack-item-content { position: static !important; inset: auto !important; }
+
+/* Gridstack item wrapper is transparent; the .list-widget carries the card look */
+.grid-stack-item-content { inset: 0; background: transparent; border: none; padding: 0; overflow: visible; }
+.list-widget { height: 100%; display: flex; flex-direction: column; overflow: hidden; padding: 0.55rem 0.7rem 0.7rem; }
+.lists-fallback .list-widget { min-height: 220px; }
+.list-widget-head { display: flex; align-items: center; gap: 0.4rem; cursor: move; margin-bottom: 0.4rem; }
+.list-title { flex: 1; min-width: 0; font-family: var(--font-display); font-weight: 700; font-size: 1.02rem; border: none; background: transparent; color: var(--ink); padding: 0.2rem; }
+.list-title:focus { outline: none; }
+.list-del { flex: none; border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 0.85rem; padding: 0.15rem 0.4rem; border-radius: 6px; line-height: 1; }
+.list-del:hover { color: var(--danger); background: var(--surface-2); }
+.list-items { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.3rem; padding-right: 0.15rem; }
+.list-item { display: flex; align-items: center; gap: 0.4rem; }
+.list-item.done .list-item-text { text-decoration: line-through; color: var(--muted); }
+.list-check { flex: none; width: 18px; height: 18px; border: 2px solid var(--edge); border-radius: 5px; background: var(--surface); cursor: pointer; padding: 0; }
+.list-check.checked { background: var(--primary); }
+.list-check.checked::after { content: "✓"; display: block; text-align: center; line-height: 14px; font-size: 0.72rem; color: var(--primary-ink); }
+.list-item-text { flex: 1; min-width: 0; font: inherit; font-size: 0.9rem; border: none; background: transparent; color: var(--ink); padding: 0.15rem; }
+.list-item-text:focus { outline: none; }
+.list-item-del { flex: none; border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 0.72rem; padding: 0.1rem 0.3rem; opacity: 0.55; }
+.list-item-del:hover { color: var(--danger); opacity: 1; }
+.list-add { margin-top: 0.45rem; display: flex; }
+.list-add-input2 { flex: 1; min-width: 0; font: inherit; font-size: 0.85rem; padding: 0.4rem 0.55rem; border: 1.5px solid var(--edge); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.list-add-input2:focus { outline: none; box-shadow: 0 0 0 3px var(--primary-weak); }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 860px) {

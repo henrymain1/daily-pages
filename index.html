@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@10/dist/gridstack.min.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -118,11 +119,12 @@
         <div class="topbar-left">
           <div class="brand small"><span class="brand-mark">📖</span><span class="brand-name">Daily Pages</span></div>
         </div>
-        <button class="view-toggle" id="view-toggle" type="button" role="switch" aria-checked="false" aria-label="Switch between Journal and Planner" data-view="journal">
+        <div class="view-toggle" id="view-toggle" role="tablist" aria-label="Switch pages" data-view="journal">
           <span class="view-toggle-thumb" aria-hidden="true"></span>
-          <span class="view-toggle-opt" data-view="journal">Journal</span>
-          <span class="view-toggle-opt" data-view="planner">Planner</span>
-        </button>
+          <button class="view-toggle-opt" type="button" role="tab" data-view="journal">Journal</button>
+          <button class="view-toggle-opt" type="button" role="tab" data-view="planner">Planner</button>
+          <button class="view-toggle-opt" type="button" role="tab" data-view="lists">Lists</button>
+        </div>
         <div class="topbar-right">
           <div class="streak-badge" id="streak-badge" title="Current writing streak">🔥&nbsp;<span id="streak-num">0</span></div>
           <button id="insights-btn" class="icon-btn" type="button" title="Insights &amp; review">📊</button>
@@ -243,6 +245,17 @@
       </section>
     </main>
 
+    <!-- Lists (dashboard of widgets) -->
+    <main id="lists-view" class="lists-page" hidden>
+      <div class="lists-head">
+        <h2 class="lists-title">Lists</h2>
+        <button id="list-add-btn" class="btn btn-primary" type="button">+ New list</button>
+      </div>
+      <div id="lists-setup" class="plan-setup" hidden></div>
+      <div id="lists-empty" class="feed-empty" hidden>No lists yet — hit “New list” to start your dashboard.</div>
+      <div class="grid-stack" id="lists-grid"></div>
+    </main>
+
     <!-- Insights / review -->
     <div id="insights-view" class="modal" hidden>
       <div class="modal-card card">
@@ -337,6 +350,7 @@
 
   <!-- Supabase client (public CDN), then your config, then the app -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gridstack@10/dist/gridstack-all.js"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
