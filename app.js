@@ -564,11 +564,14 @@
   }
 
   // ---- Stats ----------------------------------------------------------------
+  // Consecutive CALENDAR DAYS that have at least one entry (not the number of
+  // entries). Dedupe by date so multiple entries on one day count once.
   function computeStreak() {
+    const days = new Set(allEntries.filter((e) => sectionsOf(e).length > 0).map((e) => e.entry_date));
     let cur = todayStr();
-    if (!hasEntry(cur)) cur = addDays(cur, -1); // don't punish "haven't written yet today"
+    if (!days.has(cur)) cur = addDays(cur, -1); // "haven't written yet today" doesn't break it
     let n = 0;
-    while (hasEntry(cur)) { n++; cur = addDays(cur, -1); }
+    while (days.has(cur)) { n++; cur = addDays(cur, -1); }
     return n;
   }
   function totalEntries() { return allEntries.reduce((n, e) => n + sectionsOf(e).length, 0); }
@@ -1344,10 +1347,14 @@
     gridEl.classList.toggle("lists-canvas", desktop);
     gridEl.classList.toggle("lists-stack", !desktop);
     gridEl.style.minHeight = "";
+    const canvasW = gridEl.clientWidth || 1072;
     for (const list of lists) {
       const winEl = buildWidget(list);
       if (desktop) {
         normPos(list);
+        // keep windows fully within the canvas (fixes off-screen-right lists)
+        list.w = Math.min(list.w, canvasW);
+        list.x = Math.max(0, Math.min(list.x, canvasW - list.w));
         winEl.style.left = list.x + "px";
         winEl.style.top = list.y + "px";
         winEl.style.width = list.w + "px";
@@ -1391,7 +1398,7 @@
       winEl.classList.add("dragging");
       try { head.setPointerCapture(e.pointerId); } catch (_) {}
       const move = (ev) => {
-        let nx = Math.max(0, Math.min(ox + (ev.clientX - sx), Math.max(0, canvasW - 48)));
+        let nx = Math.max(0, Math.min(ox + (ev.clientX - sx), Math.max(0, canvasW - list.w)));
         let ny = Math.max(0, oy + (ev.clientY - sy));
         list.x = nx; list.y = ny;
         winEl.style.left = nx + "px"; winEl.style.top = ny + "px";
@@ -1437,59 +1444,100 @@
     });
   }
 
+  // Per-list accent colour (cosmetic; stored per device in localStorage).
+  const LIST_COLORS = { violet: "#7c6cf0", blue: "#4d8bf0", green: "#3fb489", amber: "#e0a83a", rose: "#ec6a9c", slate: "#7c8aa0" };
+  const LIST_COLOR_KEYS = ["violet", "blue", "green", "amber", "rose", "slate"];
+  function getListColor(list) { try { return localStorage.getItem("dp-listcolor-" + list.id) || "violet"; } catch (e) { return "violet"; } }
+  function setListColor(list, c) { try { localStorage.setItem("dp-listcolor-" + list.id, c); } catch (e) {} }
+
   function buildWidget(list) {
     if (!Array.isArray(list.items)) list.items = [];
     const wrap = el("div", { className: "list-window card" });
     wrap.dataset.id = list.id;
+    const colorKey = getListColor(list);
+    wrap.style.setProperty("--la", LIST_COLORS[colorKey] || LIST_COLORS.violet);
     wrap.addEventListener("pointerdown", () => { if (isDesktopLists()) bringToFront(wrap); }, true);
+
+    // Top bar (drag handle): colour dot · grab space · clear · delete
     const head = el("div", { className: "list-widget-head widget-drag" });
-    // Title is a label you can drag the whole bar by; double-click (or tap on
-    // mobile) turns it into an input to rename — like renaming a window.
-    const titleWrap = el("div", { className: "list-title-wrap" });
-    const titleLabel = el("span", { className: "list-title", textContent: list.title || "Untitled list", title: "Double-click to rename" });
-    const titleInput = el("input", { className: "list-title-edit", value: list.title || "", hidden: true, "aria-label": "List title" });
-    const beginEdit = () => { titleInput.value = list.title || ""; titleLabel.hidden = true; titleInput.hidden = false; titleInput.focus(); titleInput.select(); };
-    const endEdit = () => { list.title = titleInput.value.trim(); titleLabel.textContent = list.title || "Untitled list"; titleInput.hidden = true; titleLabel.hidden = false; scheduleListSave(list); };
-    titleLabel.addEventListener("dblclick", beginEdit);
-    titleLabel.addEventListener("click", () => { if (!isDesktopLists()) beginEdit(); });
-    titleInput.addEventListener("blur", endEdit);
-    titleInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") { e.preventDefault(); titleInput.blur(); }
-      else if (e.key === "Escape") { titleInput.value = list.title || ""; titleInput.blur(); }
+    const dot = el("button", { className: "list-dot", type: "button", title: "Change colour", "aria-label": "Change colour" });
+    const pop = el("div", { className: "list-color-pop", hidden: true });
+    LIST_COLOR_KEYS.forEach((k) => {
+      const sw = el("button", { className: "list-swatch" + (k === colorKey ? " sel" : ""), type: "button", title: k });
+      sw.style.background = LIST_COLORS[k];
+      sw.addEventListener("pointerdown", (e) => e.stopPropagation());
+      sw.addEventListener("click", (e) => {
+        e.stopPropagation();
+        setListColor(list, k);
+        wrap.style.setProperty("--la", LIST_COLORS[k]);
+        pop.querySelectorAll(".list-swatch").forEach((x) => x.classList.toggle("sel", x === sw));
+        pop.hidden = true;
+      });
+      pop.append(sw);
     });
-    titleWrap.append(titleLabel, titleInput);
+    dot.addEventListener("pointerdown", (e) => e.stopPropagation());
+    dot.addEventListener("click", (e) => { e.stopPropagation(); pop.hidden = !pop.hidden; });
+    const spacer = el("span", { className: "list-head-spacer" });
+    const clearBtn = el("button", { className: "list-clear", type: "button", title: "Clear all items", "aria-label": "Clear all items" });
+    clearBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6 7l1 12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-12"/></svg>';
+    clearBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
     const del = el("button", { className: "list-del", type: "button", title: "Delete list", textContent: "✕" });
+    del.addEventListener("pointerdown", (e) => e.stopPropagation());
     del.addEventListener("click", () => deleteList(list));
-    head.append(titleWrap, del);
+    head.append(dot, spacer, clearBtn, del, pop);
+    // close the colour popover on an outside click
+    wrap.addEventListener("pointerdown", (e) => { if (!pop.hidden && !pop.contains(e.target) && e.target !== dot) pop.hidden = true; });
+
+    // Editable title (click and type — no more double-click needed)
+    const title = el("input", { className: "list-title-input", value: list.title || "", placeholder: "List name", "aria-label": "List title" });
+    title.addEventListener("pointerdown", (e) => e.stopPropagation());
+    title.addEventListener("input", () => { list.title = title.value; scheduleListSave(list); });
+
+    // Progress
+    const prog = el("div", { className: "list-progress" });
+    const progLabel = el("span", { className: "list-progress-label" });
+    const bar = el("div", { className: "list-bar" });
+    const fill = el("div", { className: "list-bar-fill" });
+    bar.append(fill); prog.append(progLabel, bar);
+    const refreshProgress = () => {
+      const total = list.items.length, done = list.items.filter((i) => i.done).length;
+      prog.hidden = total === 0;
+      progLabel.textContent = `${done} / ${total} completed`;
+      fill.style.width = total ? Math.round((done / total) * 100) + "%" : "0%";
+    };
 
     const itemsWrap = el("div", { className: "list-items" });
-    renderListItems(list, itemsWrap);
+    renderListItems(list, itemsWrap, refreshProgress);
+    refreshProgress();
+
+    clearBtn.addEventListener("click", () => { list.items = []; renderListItems(list, itemsWrap, refreshProgress); refreshProgress(); scheduleListSave(list); });
 
     const addForm = el("form", { className: "list-add" });
     const addInput = el("input", { className: "list-add-input2", placeholder: "Add an item…", autocomplete: "off" });
+    addInput.addEventListener("pointerdown", (e) => e.stopPropagation());
     addForm.append(addInput);
     addForm.addEventListener("submit", (e) => {
       e.preventDefault();
       const t = addInput.value.trim(); if (!t) return;
       list.items.push({ id: uid(), text: t, done: false });
-      addInput.value = ""; renderListItems(list, itemsWrap); scheduleListSave(list);
+      addInput.value = ""; renderListItems(list, itemsWrap, refreshProgress); refreshProgress(); scheduleListSave(list);
     });
 
     const resize = el("div", { className: "list-resize", title: "Drag to resize" });
-    wrap.append(head, itemsWrap, addForm, resize);
+    wrap.append(head, title, prog, itemsWrap, addForm, resize);
     return wrap;
   }
 
-  function renderListItems(list, container) {
+  function renderListItems(list, container, refreshProgress) {
     container.innerHTML = "";
     for (const it of list.items) {
       const row = el("div", { className: "list-item" + (it.done ? " done" : "") });
       const cb = el("button", { className: "list-check" + (it.done ? " checked" : ""), type: "button", title: it.done ? "Uncheck" : "Check" });
-      cb.addEventListener("click", () => { it.done = !it.done; renderListItems(list, container); scheduleListSave(list); });
+      cb.addEventListener("click", () => { it.done = !it.done; renderListItems(list, container, refreshProgress); if (refreshProgress) refreshProgress(); scheduleListSave(list); });
       const txt = el("input", { className: "list-item-text", value: it.text });
       txt.addEventListener("input", () => { it.text = txt.value; scheduleListSave(list); });
       const d = el("button", { className: "list-item-del", type: "button", title: "Remove", textContent: "✕" });
-      d.addEventListener("click", () => { list.items = list.items.filter((x) => x !== it); renderListItems(list, container); scheduleListSave(list); });
+      d.addEventListener("click", () => { list.items = list.items.filter((x) => x !== it); renderListItems(list, container, refreshProgress); if (refreshProgress) refreshProgress(); scheduleListSave(list); });
       row.append(cb, txt, d);
       container.append(row);
     }
@@ -1499,7 +1547,7 @@
     if (!listsLoaded || !currentUser) return;
     const i = lists.length, col = i % 3, rw = Math.floor(i / 3);
     const row = { user_id: currentUser.id, title: "New list", items: [],
-      x: 24 + col * 328, y: 24 + rw * 300, w: 300, h: 280,
+      x: 20 + col * 344, y: 20 + rw * 320, w: 320, h: 300,
       updated_at: new Date().toISOString() };
     const { data, error } = await sb.from("lists").insert(row).select().single();
     if (error) { toast("Couldn't create list: " + error.message); return; }

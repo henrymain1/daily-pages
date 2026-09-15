@@ -1253,45 +1253,66 @@ code {
 .reader-time { font-family: var(--font-display); font-weight: 700; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 0.3rem; }
 .reader-text { font-family: var(--font-body); font-size: 1.12rem; line-height: 1.75; white-space: pre-wrap; }
 
-/* ---------- Lists dashboard ---------- */
-.lists-page { max-width: 1120px; margin: 0 auto; padding: 1.2rem 1.1rem 3rem; }
-.lists-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
-.lists-title { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; margin: 0; }
-/* Desktop: free-floating "windows" dragged/dropped anywhere on a canvas */
+/* ---------- Lists dashboard (Sanctuary cards) ---------- */
+.lists-page { max-width: 1120px; margin: 0 auto; padding: 1.5rem 1.5rem 3rem; font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
+.lists-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
+.lists-title { font-family: "Plus Jakarta Sans", system-ui, sans-serif; font-weight: 800; font-size: 1.75rem; letter-spacing: -0.02em; color: var(--dpj-navy, var(--primary)); margin: 0; }
+#list-add-btn { border: none; border-radius: 999px; padding: 0.55rem 1.1rem; background: var(--primary); color: var(--primary-ink); font-family: inherit; font-weight: 600; font-size: 0.85rem; cursor: pointer; box-shadow: var(--sh); transition: background 0.15s ease; }
+#list-add-btn:hover { background: color-mix(in srgb, var(--primary), black 12%); transform: none; box-shadow: var(--sh); }
+
+/* Desktop: free-floating cards on a canvas (kept inside the canvas width) */
 .lists-canvas { position: relative; min-height: 70vh; }
 .lists-canvas .list-window { position: absolute; }
-.list-window { display: flex; flex-direction: column; overflow: hidden; padding: 0.55rem 0.7rem 0.7rem; }
+.list-window { --la: #7c6cf0; display: flex; flex-direction: column; overflow: visible; padding: 0.85rem 1rem 0.95rem; background: var(--surface); border: 1px solid var(--dpj-cardline, var(--edge)); border-radius: 18px; box-shadow: var(--sh-lg); }
 .list-window.dragging { user-select: none; }
+.list-items, .list-color-pop { scrollbar-width: thin; }
 /* Mobile: a tidy single-column stack, no dragging */
-.lists-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.9rem; align-items: start; }
-.lists-stack .list-window { position: static; width: auto !important; height: auto !important; min-height: 220px; }
+.lists-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; align-items: start; }
+.lists-stack .list-window { position: static; width: auto !important; height: auto !important; min-height: 240px; }
 .lists-stack .list-resize { display: none; }
-/* corner resize handle */
-.list-resize { position: absolute; right: 0; bottom: 0; width: 20px; height: 20px; cursor: se-resize; touch-action: none; z-index: 2; }
-.list-resize::after { content: ""; position: absolute; right: 4px; bottom: 4px; width: 7px; height: 7px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); opacity: 0.55; }
+.list-resize { position: absolute; right: 0; bottom: 0; width: 22px; height: 22px; cursor: se-resize; touch-action: none; z-index: 2; }
+.list-resize::after { content: ""; position: absolute; right: 5px; bottom: 5px; width: 7px; height: 7px; border-right: 2px solid var(--dpj-faint, var(--muted)); border-bottom: 2px solid var(--dpj-faint, var(--muted)); opacity: 0.5; }
 
-.list-widget-head { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.4rem; }
+/* header (drag handle): colour dot · grab space · clear · delete */
+.list-widget-head { position: relative; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.5rem; }
 .lists-canvas .list-widget-head { cursor: grab; touch-action: none; }
 .lists-canvas .list-window.dragging .list-widget-head { cursor: grabbing; }
-.list-title-wrap { flex: 1; min-width: 0; display: flex; }
-.list-title { flex: 1; min-width: 0; font-family: var(--font-display); font-weight: 700; font-size: 1.02rem; color: var(--ink); padding: 0.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.list-title-edit { flex: 1; min-width: 0; font: inherit; font-family: var(--font-display); font-weight: 700; font-size: 1.02rem; border: none; background: var(--surface-2); color: var(--ink); padding: 0.2rem; border-radius: 5px; }
-.list-title-edit:focus { outline: none; box-shadow: 0 0 0 2px var(--primary-weak); }
-.list-del { flex: none; border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 0.85rem; padding: 0.15rem 0.4rem; border-radius: 6px; line-height: 1; }
-.list-del:hover { color: var(--danger); background: var(--surface-2); }
-.list-items { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.3rem; padding-right: 0.15rem; }
-.list-item { display: flex; align-items: center; gap: 0.4rem; }
-.list-item.done .list-item-text { text-decoration: line-through; color: var(--muted); }
-.list-check { flex: none; width: 18px; height: 18px; border: 2px solid var(--edge); border-radius: 5px; background: var(--surface); cursor: pointer; padding: 0; }
-.list-check.checked { background: var(--primary); }
-.list-check.checked::after { content: "✓"; display: block; text-align: center; line-height: 14px; font-size: 0.72rem; color: var(--primary-ink); }
-.list-item-text { flex: 1; min-width: 0; font: inherit; font-size: 0.9rem; border: none; background: transparent; color: var(--ink); padding: 0.15rem; }
+.list-head-spacer { flex: 1; align-self: stretch; min-width: 1.5rem; }
+.list-dot { flex: none; width: 15px; height: 15px; border-radius: 50%; border: none; background: var(--la); cursor: pointer; padding: 0; box-shadow: 0 0 0 3px color-mix(in srgb, var(--la), transparent 82%); }
+.list-clear, .list-del { flex: none; border: none; background: transparent; color: var(--dpj-faint, var(--muted)); cursor: pointer; padding: 0.2rem; border-radius: 6px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
+.list-clear svg { width: 1rem; height: 1rem; }
+.list-del { font-size: 0.9rem; }
+.list-clear:hover { color: var(--dpj-navy, var(--primary)); background: var(--surface-2); }
+.list-del:hover { color: var(--danger, #ef4444); background: var(--surface-2); }
+.list-color-pop { position: absolute; top: 1.7rem; left: 0; z-index: 10; display: flex; gap: 0.4rem; padding: 0.5rem; background: var(--surface); border: 1px solid var(--dpj-cardline, var(--edge)); border-radius: 12px; box-shadow: var(--sh-lg); }
+.list-swatch { width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+.list-swatch.sel { border-color: var(--dpj-ink, var(--ink)); }
+
+.list-title-input { width: 100%; border: none; background: transparent; font: inherit; font-family: "Plus Jakarta Sans", system-ui, sans-serif; font-weight: 700; font-size: 1.1rem; color: var(--dpj-navy, var(--primary)); padding: 0.1rem 0; margin-bottom: 0.35rem; outline: none; }
+.list-title-input::placeholder { color: var(--dpj-faint, var(--muted)); }
+.list-title-input:focus { box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--la), transparent 35%); }
+
+.list-progress { margin-bottom: 0.8rem; }
+.list-progress-label { display: block; font-size: 0.72rem; font-weight: 500; color: var(--dpj-muted, var(--muted)); margin-bottom: 0.35rem; }
+.list-bar { height: 6px; border-radius: 999px; background: var(--dpj-divider, var(--surface-2)); overflow: hidden; }
+.list-bar-fill { height: 100%; border-radius: 999px; background: var(--la); transition: width 0.25s ease; }
+
+/* items span the full card width */
+.list-items { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.1rem; }
+.list-item { display: flex; align-items: center; gap: 0.6rem; padding: 0.22rem 0; }
+.list-item.done .list-item-text { text-decoration: line-through; color: var(--dpj-faint, var(--muted)); }
+.list-check { flex: none; width: 20px; height: 20px; border: 1.6px solid var(--dpj-cardline, var(--edge)); border-radius: 6px; background: var(--surface); cursor: pointer; padding: 0; }
+.list-check.checked { background: var(--la); border-color: var(--la); }
+.list-check.checked::after { content: "✓"; display: block; text-align: center; line-height: 17px; font-size: 0.72rem; color: #fff; }
+.list-item-text { flex: 1; min-width: 0; font: inherit; font-size: 0.92rem; border: none; background: transparent; color: var(--dpj-ink, var(--ink)); padding: 0.15rem 0; }
 .list-item-text:focus { outline: none; }
-.list-item-del { flex: none; border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 0.72rem; padding: 0.1rem 0.3rem; opacity: 0.55; }
-.list-item-del:hover { color: var(--danger); opacity: 1; }
-.list-add { margin-top: 0.45rem; display: flex; }
-.list-add-input2 { flex: 1; min-width: 0; font: inherit; font-size: 0.85rem; padding: 0.4rem 0.55rem; border: 1.5px solid var(--edge); border-radius: 8px; background: var(--surface); color: var(--ink); }
-.list-add-input2:focus { outline: none; box-shadow: 0 0 0 3px var(--primary-weak); }
+.list-item-del { flex: none; border: none; background: transparent; color: var(--dpj-faint, var(--muted)); cursor: pointer; font-size: 0.72rem; padding: 0.1rem 0.3rem; opacity: 0; }
+.list-item:hover .list-item-del { opacity: 0.6; }
+.list-item-del:hover { color: var(--danger, #ef4444); opacity: 1; }
+.list-add { margin-top: 0.6rem; display: flex; }
+.list-add-input2 { flex: 1; min-width: 0; font: inherit; font-size: 0.85rem; padding: 0.5rem 0.7rem; border: 1px solid var(--dpj-cardline, var(--edge)); border-radius: 10px; background: var(--surface); color: var(--dpj-ink, var(--ink)); }
+.list-add-input2::placeholder { color: var(--dpj-faint, var(--muted)); }
+.list-add-input2:focus { outline: none; border-color: color-mix(in srgb, var(--la), transparent 45%); box-shadow: 0 0 0 3px color-mix(in srgb, var(--la), transparent 85%); }
 
 /* ============================================================
    "Sanctuary" skin  +  the two-column Journal workspace
