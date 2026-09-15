@@ -1416,7 +1416,6 @@
     $("#app-view").hidden = true;
     $("#auth-view").hidden = true;
     $("#setup-notice").hidden = true;
-    const hm = $("#hero-moods"); if (hm) hm.innerHTML = MOODS.map((m) => moodFace(m.key, 42)).join("");
     $("#landing-view").hidden = false;
     applyTheme(currentTheme());
   }
@@ -1446,6 +1445,13 @@
     $$(".landing-login").forEach((b) => b.addEventListener("click", () => showAuthForm("login")));
     $("#auth-back").addEventListener("click", showLanding);
     $("#landing-theme").addEventListener("click", () => applyTheme(currentTheme() === "dark" ? "light" : "dark"));
+    // landing section nav (smooth scroll + active state)
+    $$(".lp-navlink").forEach((a) => a.addEventListener("click", (e) => {
+      e.preventDefault();
+      const target = document.getElementById(a.dataset.scroll);
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+      $$(".lp-navlink").forEach((x) => x.classList.toggle("is-active", x === a));
+    }));
 
     // journal (timestamped log)
     $("#compose-form").addEventListener("submit", (e) => {

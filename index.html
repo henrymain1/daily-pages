@@ -29,69 +29,103 @@
   </div>
 
   <!-- ============ Landing (marketing) ============ -->
-  <div id="landing-view" class="landing" hidden>
-    <header class="landing-nav">
-      <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>Daily Pages</span></div>
-      <div class="landing-nav-actions">
-        <button id="landing-theme" class="icon-btn ic ic-theme" type="button" title="Toggle light / dark" aria-label="Toggle light / dark"></button>
-        <button class="btn btn-ghost landing-login" type="button">Log in</button>
-        <button class="btn btn-primary landing-start" type="button">Get started</button>
+  <div id="landing-view" class="lp" hidden>
+    <header class="lp-nav" id="lp-top">
+      <div class="brand lp-brand"><span class="brand-mark" aria-hidden="true"></span><span>Daily Pages</span></div>
+      <nav class="lp-navlinks" aria-label="Sections">
+        <a class="lp-navlink is-active" href="#lp-top" data-scroll="lp-top">Home</a>
+        <a class="lp-navlink" href="#lp-features" data-scroll="lp-features">Features</a>
+        <a class="lp-navlink" href="#lp-about" data-scroll="lp-about">About</a>
+      </nav>
+      <div class="lp-nav-actions">
+        <button id="landing-theme" class="lp-moon ic ic-theme" type="button" title="Toggle light / dark" aria-label="Toggle light / dark"></button>
+        <button class="lp-btn lp-btn-primary landing-start" type="button">Get started</button>
       </div>
     </header>
 
-    <!-- Masthead: the front page of your almanac -->
-    <section class="masthead">
-      <div class="masthead-rule" aria-hidden="true"></div>
-      <p class="masthead-line"><span>A private daily almanac</span><span id="masthead-date" class="masthead-date"></span></p>
-      <div class="masthead-main">
-        <div class="masthead-lede">
-          <h1 class="masthead-title">Write your days.<br /><em>See your patterns.</em></h1>
-          <p class="masthead-sub">A quiet place to journal whenever the moment hits, plan the day ahead, and read the week back in a short reflection. Yours alone.</p>
-          <div class="masthead-cta">
-            <button class="btn btn-primary btn-lg landing-start" type="button">Start writing</button>
-            <button class="btn btn-lg landing-login" type="button">I have an account</button>
-          </div>
-        </div>
-        <aside class="masthead-aside">
-          <div class="masthead-aside-label">Today's temper</div>
-          <div class="hero-moods" id="hero-moods" aria-hidden="true"></div>
-          <p class="masthead-aside-note">Mark how the day felt — and watch the weeks take shape.</p>
-        </aside>
+    <!-- Hero -->
+    <section class="lp-hero">
+      <div class="lp-hero-copy">
+        <p class="lp-eyebrow">A private daily almanac</p>
+        <h1 class="lp-h1">Write your days.<br /><em>See your patterns.</em></h1>
+        <p class="lp-sub">A quiet place to journal whenever the moment hits, plan the day ahead, and read the week back in a short reflection. Yours alone.</p>
+        <button class="lp-btn lp-btn-primary lp-btn-lg landing-start" type="button">Get started — it's free <span class="lp-arrow" aria-hidden="true">→</span></button>
+      </div>
+      <div class="lp-hero-art">
+        <span class="lp-art-bloom" aria-hidden="true"></span>
+        <img src="img/hero.png" alt="A cheerful cloud beside a notebook that reads “Better days ahead” with a calendar and pen" width="1465" height="1074" fetchpriority="high" />
       </div>
     </section>
 
-    <!-- Contents: the sections, laid out as an edition index -->
-    <section class="edition">
-      <div class="edition-head"><h2>In this edition</h2><span class="edition-rule" aria-hidden="true"></span></div>
-      <ol class="edition-list">
-        <li class="edition-item">
-          <span class="edition-num">01</span>
-          <div class="edition-body"><h3>Journal on your time</h3><p>Jot a thought whenever it strikes — every entry is timestamped and filed to its day. Come back tonight, tomorrow, whenever.</p></div>
-        </li>
-        <li class="edition-item">
-          <span class="edition-num">02</span>
-          <div class="edition-body"><h3>Plan the day ahead</h3><p>A single focus and a checklist with subtasks. Flip back through past days any time.</p></div>
-        </li>
-        <li class="edition-item">
-          <span class="edition-num">03</span>
-          <div class="edition-body"><h3>See the patterns</h3><p>Mood trends, streaks, and a monthly review that shows how the days actually went.</p></div>
-        </li>
-        <li class="edition-item">
-          <span class="edition-num">04</span>
-          <div class="edition-body"><h3>Read the week back</h3><p>Each week, a short, calm reflection on your entries — a quiet mirror for what mattered.</p></div>
-        </li>
-      </ol>
+    <!-- Why -->
+    <section class="lp-why" id="lp-features">
+      <div class="lp-why-head">
+        <div class="lp-why-copy">
+          <p class="lp-eyebrow">Why Daily Pages</p>
+          <h2 class="lp-h2">Small moments.<br /><em>Big picture.</em></h2>
+          <p class="lp-sub">Daily Pages helps you slow down, reflect, and build a deeper understanding of your days — one entry at a time.</p>
+        </div>
+        <div class="lp-why-art">
+          <span class="lp-art-bloom" aria-hidden="true"></span>
+          <img src="img/moods.png" alt="Five mood characters from crying to joyful, captioned “How was your day?”" width="1774" height="887" loading="lazy" />
+        </div>
+      </div>
+
+      <div class="lp-features">
+        <div class="lp-feature">
+          <span class="lp-feat-icon lp-feat-blue" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17v3z"></path><path d="M13.5 7l3 3"></path></svg>
+          </span>
+          <h3>Write freely</h3>
+          <p>Jot down your thoughts whenever it feels right. No pressure, no judgement.</p>
+        </div>
+        <div class="lp-feature">
+          <span class="lp-feat-icon lp-feat-purple" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2.2"></rect><path d="M4 9.5h16"></path><path d="M8 3v4M16 3v4"></path></svg>
+          </span>
+          <h3>Plan ahead</h3>
+          <p>Set your focus for the day with a simple checklist and clear intentions.</p>
+        </div>
+        <div class="lp-feature">
+          <span class="lp-feat-icon lp-feat-green" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V11M12 20V5M18 20v-6"></path></svg>
+          </span>
+          <h3>Spot patterns</h3>
+          <p>Look back at your week and see what's working, and what's not.</p>
+        </div>
+        <div class="lp-feature">
+          <span class="lp-feat-icon lp-feat-amber" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+          </span>
+          <h3>Just for you</h3>
+          <p>Your journal stays private. It's your space, always.</p>
+        </div>
+      </div>
     </section>
 
-    <section class="landing-cta">
-      <h2>Start today's page.</h2>
-      <button class="btn btn-lg landing-start" type="button">Get started — it's free</button>
+    <!-- CTA with wavy top -->
+    <section class="lp-cta" id="lp-about">
+      <div class="lp-cta-wave" aria-hidden="true">
+        <svg viewBox="0 0 1440 90" preserveAspectRatio="none">
+          <path class="lp-wave-back" d="M0,52 C150,20 330,18 540,42 C760,67 900,66 1080,44 C1250,24 1350,30 1440,40 L1440,90 L0,90 Z"></path>
+          <path class="lp-wave-front" d="M0,66 C170,38 360,40 540,58 C720,76 900,74 1090,54 C1260,36 1360,44 1440,54 L1440,90 L0,90 Z"></path>
+        </svg>
+      </div>
+      <div class="lp-cta-inner">
+        <div class="lp-cta-copy">
+          <p class="lp-eyebrow">Ready to start?</p>
+          <h2 class="lp-h2">A calmer, clearer you<br /><em>is just a journal entry away.</em></h2>
+          <button class="lp-btn lp-btn-primary lp-btn-lg landing-start" type="button">Get started — it's free <span class="lp-arrow" aria-hidden="true">→</span></button>
+        </div>
+        <div class="lp-cta-art">
+          <img src="img/writing.png" alt="A cloud character writing in an open journal beside a small plant" width="1509" height="1042" loading="lazy" />
+        </div>
+      </div>
+      <footer class="lp-foot">
+        <span class="lp-foot-brand"><span class="brand-mark" aria-hidden="true"></span>Daily Pages</span>
+        <span>Your entries are private to you.</span>
+      </footer>
     </section>
-
-    <footer class="landing-foot">
-      <span class="foot-brand"><span class="brand-mark" aria-hidden="true"></span>Daily Pages</span>
-      <span>Your entries are private to you.</span>
-    </footer>
   </div>
 
   <!-- ============ Auth ============ -->
