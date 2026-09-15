@@ -137,6 +137,9 @@
           <button class="view-toggle-opt" type="button" role="tab" data-view="lists">Lists</button>
         </nav>
         <div class="topbar-right">
+          <div class="topbar-streak" id="streak-badge" title="Current writing streak" hidden>
+            <span class="streak-flame" aria-hidden="true">🔥</span><span id="streak-num">0</span>
+          </div>
           <button id="search-btn" class="topbar-icon" type="button" title="Browse &amp; search entries" aria-label="Browse entries">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="20" y1="20" x2="16" y2="16"></line></svg>
           </button>
@@ -147,13 +150,11 @@
             <div id="user-dropdown" class="user-dropdown" role="menu" hidden>
               <div class="user-dropdown-head">
                 <span id="user-dropdown-email" class="user-dropdown-email"></span>
-                <span class="streak-badge" id="streak-badge" title="Current writing streak">🔥&nbsp;<span id="streak-num">0</span>-day streak</span>
               </div>
               <button id="insights-btn" class="menu-item" type="button" role="menuitem"><span class="ic ic-chart" aria-hidden="true"></span> Insights &amp; review</button>
               <button id="reader-btn" class="menu-item" type="button" role="menuitem"><span class="ic ic-book" aria-hidden="true"></span> Browse all entries</button>
               <button id="export-btn" class="menu-item" type="button" role="menuitem"><span class="ic ic-download" aria-hidden="true"></span> Export as Markdown</button>
               <button id="theme-toggle" class="menu-item" type="button" role="menuitem"><span class="ic ic-theme" aria-hidden="true"></span> Light / dark</button>
-              <button id="settings-btn" class="menu-item" type="button" role="menuitem"><span class="ic ic-settings" aria-hidden="true"></span> Settings</button>
               <div class="menu-sep" aria-hidden="true"></div>
               <button id="logout-btn" class="menu-item" type="button" role="menuitem">Log out</button>
             </div>

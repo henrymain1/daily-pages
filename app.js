@@ -548,6 +548,7 @@
   function renderStats() {
     const streak = computeStreak();
     $("#streak-num").textContent = streak;
+    { const sb = $("#streak-badge"); if (sb) sb.hidden = streak < 1; } // only show a live streak
     $("#stat-streak").textContent = streak;
     $("#stat-total").textContent = totalEntries();
     const now = new Date();
@@ -575,14 +576,14 @@
     for (let d = 1; d <= daysInMonth; d++) {
       const ds = `${y}-${pad(m + 1)}-${pad(d)}`;
       const cell = el("button", { className: "cal-cell", type: "button" });
-      cell.append(el("span", { className: "cal-day", textContent: String(d) }));
+      const dayEl = el("span", { className: "cal-day", textContent: String(d) });
+      cell.append(dayEl);
 
       const row = byDate.get(ds);
       if (row && sectionsOf(row).length > 0) {
         cell.classList.add("has");
-        const dot = el("span", { className: "cal-dot" });
-        dot.style.background = MOOD_DOT[row.mood] || "#cbd5e1";
-        cell.append(dot);
+        // fill the day with its mood colour; the number knocks out in the bg colour
+        dayEl.style.background = MOOD_DOT[row.mood] || "#cbd5e1";
       }
       if (ds === today) cell.classList.add("today");
       if (ds === selectedDate) cell.classList.add("selected");
@@ -1484,8 +1485,8 @@
     $$(".period-btn").forEach((b) => b.addEventListener("click", () => setPeriod(b.dataset.period)));
     $("#ai-summary-btn").addEventListener("click", generateAISummary);
 
-    // settings
-    $("#settings-btn").addEventListener("click", openSettings);
+    // settings (skin switcher entry point removed from the menu for now; modal code kept)
+    { const sb = $("#settings-btn"); if (sb) sb.addEventListener("click", openSettings); }
     $("#settings-close").addEventListener("click", closeSettings);
     $("#settings-view").addEventListener("click", (e) => { if (e.target === $("#settings-view")) closeSettings(); });
     $$(".skin-option").forEach((b) => b.addEventListener("click", () => applySkin(b.dataset.skin)));
