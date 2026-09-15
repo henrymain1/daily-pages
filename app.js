@@ -42,7 +42,7 @@
 
   // ---- Skin (visual theme) --------------------------------------------------
   const SKIN_KEY = "dp-skin";
-  function currentSkin() { return document.documentElement.getAttribute("data-skin") || "editorial"; }
+  function currentSkin() { return document.documentElement.getAttribute("data-skin") || "sanctuary"; }
   function applySkin(skin) {
     document.documentElement.setAttribute("data-skin", skin);
     try { localStorage.setItem(SKIN_KEY, skin); } catch (e) {}
@@ -54,9 +54,51 @@
   }
   function openSettings() { $("#settings-view").hidden = false; refreshSettingsUI(); }
   function closeSettings() { $("#settings-view").hidden = true; }
+
+  // ---- Avatar dropdown menu -------------------------------------------------
+  function closeUserMenu() {
+    const dd = $("#user-dropdown"), ab = $("#user-avatar-btn");
+    if (dd) dd.hidden = true;
+    if (ab) ab.setAttribute("aria-expanded", "false");
+  }
+  function toggleUserMenu() {
+    const dd = $("#user-dropdown"), ab = $("#user-avatar-btn");
+    if (!dd) return;
+    const willOpen = dd.hidden;
+    dd.hidden = !willOpen;
+    if (ab) ab.setAttribute("aria-expanded", String(willOpen));
+  }
+
+  // ---- Composer formatting toolbar (lightweight markdown) -------------------
+  function applyTool(cmd) {
+    const ta = $("#compose-input");
+    if (!ta) return;
+    if (cmd === "mic" || cmd === "tag") { toast("That tool isn't available yet."); return; }
+    const s = ta.selectionStart, e = ta.selectionEnd, v = ta.value, sel = v.slice(s, e);
+    let ins = sel;
+    if (cmd === "bold") ins = `**${sel || "bold"}**`;
+    else if (cmd === "italic") ins = `*${sel || "italic"}*`;
+    else if (cmd === "list") ins = (s > 0 && v[s - 1] !== "\n" ? "\n" : "") + `- ${sel}`;
+    else if (cmd === "link") ins = `[${sel || "text"}](url)`;
+    ta.value = v.slice(0, s) + ins + v.slice(e);
+    ta.focus();
+    const pos = s + ins.length;
+    ta.setSelectionRange(pos, pos);
+    autoGrow(ta);
+    updateWords();
+  }
   (function initSkin() {
-    let s = "editorial";
-    try { s = localStorage.getItem(SKIN_KEY) || "editorial"; } catch (e) {}
+    let s = "sanctuary";
+    try {
+      s = localStorage.getItem(SKIN_KEY) || "sanctuary";
+      // One-time migration: land everyone on the new Sanctuary design once,
+      // then respect whatever they pick afterwards.
+      if (!localStorage.getItem("dp-skin-v2")) {
+        s = "sanctuary";
+        localStorage.setItem(SKIN_KEY, "sanctuary");
+        localStorage.setItem("dp-skin-v2", "1");
+      }
+    } catch (e) {}
     document.documentElement.setAttribute("data-skin", s);
   })();
 
@@ -77,6 +119,7 @@
   function addDays(s, n) { const d = parseDate(s); d.setDate(d.getDate() + n); return ymd(d); }
   function longDate(s) { const d = parseDate(s); return `${DOW[d.getDay()]}, ${MON[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; }
   function shortDate(s) { const d = parseDate(s); return `${MON_SHORT[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; }
+  function dateNoDow(s) { const d = parseDate(s); return `${MON[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; }
 
   // ---- Moods ----------------------------------------------------------------
   const MOODS = [
@@ -91,6 +134,11 @@
   const MOOD_SCORE = { great: 5, good: 4, meh: 3, down: 2, awful: 1 };
   const MOOD_COLOR = { great: "#54bd62", good: "#8ece6c", meh: "#f4cf4f", down: "#f0a24b", awful: "#ec6a6a" };
   const MOOD_LIGHT = { great: "#82d67e", good: "#b6e28f", meh: "#ffe07e", down: "#f8c07f", awful: "#f6a3a3" };
+  // "Sanctuary" reference palette: calendar dots, insight bars, and the low→high order (1..5)
+  const MOOD_DOT = { great: "#79b7f7", good: "#86ce9b", meh: "#f5ce66", down: "#f6b278", awful: "#f9b4ab" };
+  const MOOD_BAR = { great: "#4d9bf7", good: "#52b779", meh: "#f6c653", down: "#f59e6b", awful: "#f87171" };
+  const MOOD_ORDER = ["awful", "down", "meh", "good", "great"]; // reference shows worst → best, labelled 1..5
+  const NODE_COLORS = ["#86ce9b", "#f5ce66", "#79b7f7", "#f6b278", "#f9b4ab"]; // decorative timeline nodes
   // Expressive mood faces (rounded-square, subtle gradient, features in currentColor/theme ink).
   function moodFace(key, size = 28) {
     const base = MOOD_COLOR[key] || "var(--muted)";
@@ -111,6 +159,30 @@
       + (F[key] || F.meh) + `</svg>`;
   }
   function faceEl(key, size) { const s = el("span", { className: "mood-face-wrap" }); s.innerHTML = moodFace(key, size); return s; }
+
+  // "Sanctuary" watercolor blob faces (ported from the reference design).
+  const MOOD_BLOB = {
+    awful: { fill: "#f8b6ac",
+      path: "M12 25 C10 12, 22 6, 35 7 C46 8, 52 16, 50 28 C48 40, 36 45, 24 44 C12 43, 14 35, 12 25 Z",
+      face: '<circle cx="23" cy="23" r="2.4" fill="#334155"/><circle cx="37" cy="23" r="2.4" fill="#334155"/><path d="M26 34 Q30 29 34 34" fill="none" stroke="#334155" stroke-width="2.2" stroke-linecap="round"/>' },
+    down: { fill: "#f8ba7b",
+      path: "M10 27 C8 15, 20 7, 33 8 C45 9, 52 18, 49 30 C46 41, 34 45, 22 43 C11 41, 12 37, 10 27 Z",
+      face: '<circle cx="23" cy="24" r="2.2" fill="#334155"/><circle cx="37" cy="24" r="2.2" fill="#334155"/><path d="M21 19 L25 21" stroke="#334155" stroke-width="1.5" stroke-linecap="round"/><path d="M39 19 L35 21" stroke="#334155" stroke-width="1.5" stroke-linecap="round"/><path d="M26 33 Q30 29 34 33" fill="none" stroke="#334155" stroke-width="2" stroke-linecap="round"/>' },
+    meh: { fill: "#f8d370",
+      path: "M12 25 C10 13, 23 8, 36 9 C47 10, 52 18, 50 30 C48 42, 35 45, 24 44 C13 43, 14 36, 12 25 Z",
+      face: '<circle cx="23" cy="24" r="2.2" fill="#334155"/><circle cx="37" cy="24" r="2.2" fill="#334155"/><line x1="26" y1="31" x2="34" y2="31" stroke="#334155" stroke-width="2.2" stroke-linecap="round"/>' },
+    good: { fill: "#93dca5",
+      path: "M12 25 C10 12, 23 6, 36 8 C48 10, 52 19, 50 31 C48 41, 35 45, 24 44 C13 43, 14 36, 12 25 Z",
+      face: '<path d="M21 21 Q24 18 27 21" fill="none" stroke="#2d4a3e" stroke-width="2" stroke-linecap="round"/><path d="M33 21 Q36 18 39 21" fill="none" stroke="#2d4a3e" stroke-width="2" stroke-linecap="round"/><path d="M24 28 Q30 36 36 28 Z" fill="#2d4a3e"/>' },
+    great: { fill: "#88c0fa",
+      path: "M12 25 C10 13, 23 8, 36 8 C48 9, 52 18, 50 30 C48 41, 36 45, 24 44 C13 43, 14 36, 12 25 Z",
+      face: '<path d="M21 21 Q24 17 27 21" fill="none" stroke="#1e3a5f" stroke-width="2.2" stroke-linecap="round"/><path d="M33 21 Q36 17 39 21" fill="none" stroke="#1e3a5f" stroke-width="2.2" stroke-linecap="round"/><path d="M24 27 Q30 38 36 27 Z" fill="#1e3a5f"/>' },
+  };
+  function moodBlob(key, size = 48) {
+    const b = MOOD_BLOB[key] || MOOD_BLOB.meh;
+    const h = Math.round((size * 50) / 60);
+    return `<svg viewBox="0 0 60 50" width="${size}" height="${h}" aria-hidden="true"><path d="${b.path}" fill="${b.fill}"/>${b.face}</svg>`;
+  }
 
   // ---- Daily prompts --------------------------------------------------------
   const PROMPTS = [
@@ -325,21 +397,45 @@
   // ---- Editor ---------------------------------------------------------------
   function renderMoodRow() {
     const row = $("#mood-row");
+    if (!row) return;
     row.innerHTML = "";
-    for (const m of MOODS) {
+    MOOD_ORDER.forEach((key, i) => {
+      const m = moodOf(key);
       const b = el("button", {
-        className: "mood-btn" + (curMood === m.key ? " active" : ""),
+        className: "mood-btn" + (curMood === key ? " active" : ""),
         type: "button",
-        title: m.label,
+        title: m ? m.label : "",
       });
-      b.innerHTML = moodFace(m.key, 30);
+      b.style.setProperty("--m", MOOD_DOT[key] || "#86ce9b");
+      const glyph = el("span", { className: "dpj-mood-glyph" });
+      glyph.innerHTML = moodBlob(key, 48);
+      const num = el("span", { className: "dpj-mood-num", textContent: String(i + 1) });
+      b.append(glyph, num);
       b.addEventListener("click", () => {
-        curMood = curMood === m.key ? "" : m.key;
+        curMood = curMood === key ? "" : key;
         renderMoodRow();
         scheduleSave();
       });
       row.append(b);
-    }
+    });
+  }
+
+  function renderMoodLegend() {
+    const leg = $("#mood-legend");
+    if (!leg) return;
+    leg.innerHTML = "";
+    MOOD_ORDER.forEach((key, i) => {
+      const item = el("div", { className: "dpj-legend-item" });
+      item.innerHTML = moodBlob(key, 26) + `<span>${i + 1}</span>`;
+      leg.append(item);
+    });
+  }
+
+  function updateWords() {
+    const w = $("#compose-words"), ci = $("#compose-input");
+    if (!w || !ci) return;
+    const n = wordCount(ci.value);
+    w.textContent = n === 1 ? "1 word" : n + " words";
   }
 
   function openEditor(date) {
@@ -349,17 +445,20 @@
     curMood = row ? (row.mood || "") : "";
 
     const isToday = date === todayStr();
-    $("#entry-daylabel").textContent = isToday ? "Today" : DOW[parseDate(date).getDay()];
-    $("#entry-date").textContent = longDate(date);
-    $("#back-today").hidden = isToday;
+    $("#entry-daylabel").textContent = DOW[parseDate(date).getDay()];
+    $("#entry-date").textContent = dateNoDow(date);
 
     const chip = $("#prompt-chip");
     chip.hidden = !(isToday && curSections.length === 0); // gentle nudge only on an empty today
-    if (!chip.hidden) chip.textContent = "✨ " + promptForToday();
+    if (!chip.hidden) chip.textContent = promptForToday();
 
     renderMoodRow();
     renderFeed();
     setSaveStatus(curSections.length ? "Saved" : "", curSections.length > 0);
+
+    // fresh composer for each day
+    const ci = $("#compose-input"); if (ci) { ci.value = ""; autoGrow(ci); }
+    updateWords();
 
     renderCalendar();
     renderList();
@@ -383,53 +482,13 @@
     if (next) next.disabled = selectedDate >= todayStr();
   }
 
-  // Turn to another day with a book page-flip (a riffle when jumping many days).
+  // Switch to another day (no future days).
   async function flipTo(target) {
-    if (flipping) return;
     if (target > todayStr()) target = todayStr();
     if (target === selectedDate) return;
     await maybeFlush();
-    const back = target < selectedDate;
-    const diff = Math.abs(dateDiffDays(target, selectedDate));
     calCursor = parseDate(target);
-    if (reducedMotion() || nbMobile() || currentView !== "journal") { openEditor(target); return; }
-    flipping = true;
-    const leaves = Math.min(Math.max(diff, 1), 6);
-    try { await runFlip(back, leaves, () => openEditor(target)); }
-    finally { flipping = false; }
-  }
-
-  function runFlip(back, k, applyContent) {
-    const spread = $("#nb-spread");
-    const src = back ? $("#nb-page-left") : $("#nb-page-right");
-    if (!spread || !src) { applyContent(); return Promise.resolve(); }
-    const inner = src.querySelector(".nb-page-inner");
-    const outHTML = inner ? inner.outerHTML : src.innerHTML;
-    const made = [];
-    for (let i = 0; i < k; i++) {
-      const leaf = el("div", { className: "flip-leaf " + (back ? "is-back" : "is-fwd") });
-      const front = el("div", { className: "flip-face flip-face-front" });
-      const backf = el("div", { className: "flip-face flip-face-back" });
-      if (i === 0) {
-        front.innerHTML = outHTML;
-        // avoid transient duplicate IDs while the clone is on-screen
-        front.querySelectorAll("[id]").forEach((n) => n.removeAttribute("id"));
-      }
-      leaf.append(front, backf);
-      spread.append(leaf);
-      made.push(leaf);
-    }
-    applyContent(); // real pages now show the target day, behind the turning leaves
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      made.forEach((leaf, i) => { leaf.style.transitionDelay = (i * 65) + "ms"; leaf.classList.add("turned"); });
-    }));
-    return new Promise((resolve) => {
-      const last = made[made.length - 1];
-      let done = false;
-      const finish = () => { if (done) return; done = true; made.forEach((l) => l.remove()); resolve(); };
-      last.addEventListener("transitionend", (e) => { if (e.propertyName === "transform") finish(); }, { once: true });
-      setTimeout(finish, 700 + k * 65 + 250); // safety net if transitionend is missed
-    });
+    openEditor(target);
   }
 
   function renderFeed() {
@@ -442,6 +501,9 @@
     }
     curSections.forEach((s, i) => {
       const item = el("div", { className: "feed-entry" });
+      const node = el("span", { className: "feed-node" });
+      node.style.background = NODE_COLORS[i % NODE_COLORS.length];
+      item.append(node);
       const head = el("div", { className: "feed-head" });
       head.append(el("span", { className: "feed-time", textContent: fmtStamp(s.ts, selectedDate) }));
       const del = el("button", { className: "feed-del", type: "button", title: "Delete this entry", textContent: "✕" });
@@ -503,11 +565,12 @@
     const grid = $("#cal-grid");
     grid.innerHTML = "";
 
-    const startDow = new Date(y, m, 1).getDay();
+    // Reference calendar is Monday-first.
+    const startOffset = (new Date(y, m, 1).getDay() + 6) % 7;
     const daysInMonth = new Date(y, m + 1, 0).getDate();
     const today = todayStr();
 
-    for (let i = 0; i < startDow; i++) grid.append(el("div", { className: "cal-cell empty" }));
+    for (let i = 0; i < startOffset; i++) grid.append(el("div", { className: "cal-cell empty" }));
 
     for (let d = 1; d <= daysInMonth; d++) {
       const ds = `${y}-${pad(m + 1)}-${pad(d)}`;
@@ -517,7 +580,9 @@
       const row = byDate.get(ds);
       if (row && sectionsOf(row).length > 0) {
         cell.classList.add("has");
-        cell.append(el("span", { className: "cal-dot", style: `background:${MOOD_COLOR[row.mood] || "var(--ink)"};` }));
+        const dot = el("span", { className: "cal-dot" });
+        dot.style.background = MOOD_DOT[row.mood] || "#cbd5e1";
+        cell.append(dot);
       }
       if (ds === today) cell.classList.add("today");
       if (ds === selectedDate) cell.classList.add("selected");
@@ -528,6 +593,66 @@
         cell.addEventListener("click", () => flipTo(ds));
       }
       grid.append(cell);
+    }
+
+    renderSidebarInsights();
+  }
+
+  // ---- Sidebar insights (reference panel: tied to the visible month) --------
+  function renderSidebarInsights() {
+    const y = calCursor.getFullYear(), m = calCursor.getMonth();
+    const setTxt = (sel, v) => { const n = $(sel); if (n) n.textContent = v; };
+    setTxt("#si-month", `${MON[m]} ${y}`);
+
+    const pref = `${y}-${pad(m + 1)}`;
+    const days = allEntries.filter((e) => e.entry_date.startsWith(pref) && sectionsOf(e).length > 0);
+    const moodDays = days.filter((e) => e.mood && MOOD_SCORE[e.mood]);
+    const totalMonth = days.reduce((n, e) => n + sectionsOf(e).length, 0);
+    const avg = moodDays.length ? moodDays.reduce((s, e) => s + MOOD_SCORE[e.mood], 0) / moodDays.length : 0;
+
+    setTxt("#si-avg", moodDays.length ? `${avg.toFixed(1)} / 5` : "—");
+    setTxt("#si-days", String(days.length));
+    setTxt("#si-total", String(totalMonth));
+
+    const dist = $("#si-mooddist");
+    if (dist) {
+      dist.innerHTML = "";
+      const counts = {}; moodDays.forEach((e) => { counts[e.mood] = (counts[e.mood] || 0) + 1; });
+      const totalMood = moodDays.length;
+      ["great", "good", "meh", "down", "awful"].forEach((key, idx) => {
+        const rowEl = el("div", { className: "dpj-dist-row" });
+        rowEl.append(el("span", { className: "dpj-dist-lvl", textContent: String(5 - idx) }));
+        const track = el("div", { className: "dpj-dist-track" });
+        const fill = el("div", { className: "dpj-dist-fill" });
+        const pct = totalMood ? Math.round((counts[key] || 0) / totalMood * 100) : 0;
+        fill.style.width = pct + "%";
+        fill.style.background = MOOD_BAR[key];
+        track.append(fill);
+        rowEl.append(track, el("span", { className: "dpj-dist-pct", textContent: pct + "%" }));
+        dist.append(rowEl);
+      });
+    }
+
+    const best = $("#si-bestdays");
+    if (best) {
+      best.innerHTML = "";
+      const ranked = [...moodDays]
+        .sort((a, b) => MOOD_SCORE[b.mood] - MOOD_SCORE[a.mood] || a.entry_date.localeCompare(b.entry_date))
+        .slice(0, 3)
+        .sort((a, b) => a.entry_date.localeCompare(b.entry_date));
+      if (ranked.length === 0) {
+        best.append(el("div", { className: "dpj-bestdays-empty", textContent: "No moods logged yet this month." }));
+      } else {
+        const track = el("div", { className: "dpj-bestdays-track" });
+        ranked.forEach((e) => { const dot = el("div", { className: "dpj-bestdays-dot" }); dot.style.background = MOOD_DOT[e.mood] || "#86ce9b"; track.append(dot); });
+        const dates = el("div", { className: "dpj-bestdays-dates" });
+        ranked.forEach((e, i) => {
+          const dd = parseDate(e.entry_date);
+          dates.append(el("span", { textContent: `${MON_SHORT[dd.getMonth()]} ${dd.getDate()}` }));
+          if (i < ranked.length - 1) dates.append(el("span", { className: "sep", textContent: "•" }));
+        });
+        best.append(track, dates);
+      }
     }
   }
 
@@ -817,10 +942,9 @@
   }
   function toggleReader() {
     readerMode = !readerMode;
-    const btn = $("#reader-btn"); if (btn) { btn.textContent = readerMode ? "Write" : "Read"; btn.classList.toggle("ic-book", !readerMode); btn.classList.toggle("ic-edit", readerMode); }
     if (readerMode) renderReader();
     applyViews();
-    if (!readerMode) { const ci = $("#compose-input"); if (ci) ci.focus(); }
+    if (!readerMode) { const ci = $("#compose-input"); if (ci) ci.focus({ preventScroll: true }); }
   }
   function renderReader() {
     const body = $("#reader-body"); if (!body) return;
@@ -1261,14 +1385,16 @@
     const initial = ((user.email || "?").trim().charAt(0) || "?").toUpperCase();
     $("#user-avatar").textContent = initial;
     $("#user-avatar").title = user.email || "";
+    { const em = $("#user-dropdown-email"); if (em) em.textContent = user.email || ""; }
     applyTheme(currentTheme());
+    renderMoodLegend();
 
     calCursor = new Date();
     selectedDate = todayStr();
     readerMode = false;
     await loadEntries();
     renderStats();
-    openEditor(todayStr()); // also renders calendar + list
+    openEditor(todayStr()); // also renders calendar + list + sidebar insights
     applyViews();
     let lastView = "journal";
     try { lastView = localStorage.getItem("dp-view") || "journal"; } catch (e) {}
@@ -1324,28 +1450,32 @@
     $("#compose-form").addEventListener("submit", (e) => {
       e.preventDefault();
       const inp = $("#compose-input");
-      withScrollStable(() => { if (addEntry(inp.value)) { inp.value = ""; autoGrow(inp); } });
+      withScrollStable(() => { if (addEntry(inp.value)) { inp.value = ""; autoGrow(inp); updateWords(); } });
       inp.focus({ preventScroll: true });
     });
     $("#compose-input").addEventListener("keydown", (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); $("#compose-form").requestSubmit(); }
     });
-    $("#compose-input").addEventListener("input", () => autoGrow($("#compose-input")));
-    $("#reader-btn").addEventListener("click", toggleReader);
+    $("#compose-input").addEventListener("input", () => { autoGrow($("#compose-input")); updateWords(); });
+    // formatting toolbar
+    $$(".dpj-tool").forEach((btn) => btn.addEventListener("click", () => applyTool(btn.dataset.cmd)));
+    { const rb = $("#reader-btn"); if (rb) rb.addEventListener("click", toggleReader); }
+    { const sb2 = $("#search-btn"); if (sb2) sb2.addEventListener("click", toggleReader); }
     $("#reader-exit").addEventListener("click", toggleReader);
     $("#back-today").addEventListener("click", async () => {
       await flipTo(todayStr());
       const ci = $("#compose-input"); if (ci) ci.focus({ preventScroll: true });
     });
-    // page-flip day navigation
-    { const dp = $("#day-prev"); if (dp) dp.addEventListener("click", () => flipTo(addDays(selectedDate, -1))); }
-    { const dn = $("#day-next"); if (dn) dn.addEventListener("click", () => flipTo(addDays(selectedDate, 1))); }
+    // day navigation (left back-arrow + right arrow pair)
+    $$(".js-prevday").forEach((b) => b.addEventListener("click", () => flipTo(addDays(selectedDate, -1))));
+    $$(".js-nextday").forEach((b) => b.addEventListener("click", () => flipTo(addDays(selectedDate, 1))));
 
     // sidebar
     $("#export-btn").addEventListener("click", exportEntries);
     $("#search").addEventListener("input", renderList);
     $("#cal-prev").addEventListener("click", () => { calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() - 1, 1); renderCalendar(); });
     $("#cal-next").addEventListener("click", () => { calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() + 1, 1); renderCalendar(); });
+    { const io = $("#insights-open"); if (io) io.addEventListener("click", async () => { await maybeFlush(); openInsights(); }); }
 
     // insights
     $("#insights-btn").addEventListener("click", async () => { await maybeFlush(); openInsights(); });
@@ -1360,6 +1490,14 @@
     $("#settings-view").addEventListener("click", (e) => { if (e.target === $("#settings-view")) closeSettings(); });
     $$(".skin-option").forEach((b) => b.addEventListener("click", () => applySkin(b.dataset.skin)));
     $$(".mode-btn").forEach((b) => b.addEventListener("click", () => { applyTheme(b.dataset.mode); refreshSettingsUI(); }));
+
+    // avatar dropdown menu
+    { const ab = $("#user-avatar-btn"); if (ab) ab.addEventListener("click", (e) => { e.stopPropagation(); toggleUserMenu(); }); }
+    $$("#user-dropdown .menu-item").forEach((b) => b.addEventListener("click", closeUserMenu));
+    document.addEventListener("click", (e) => {
+      const dd = $("#user-dropdown"), ab = $("#user-avatar-btn");
+      if (dd && !dd.hidden && !dd.contains(e.target) && ab && !ab.contains(e.target)) closeUserMenu();
+    });
 
     // weekly reflection popup
     $("#summary-close").addEventListener("click", () => closeSummary(false));
@@ -1387,6 +1525,7 @@
       if (e.key === "Escape" && !$("#insights-view").hidden) closeInsights();
       if (e.key === "Escape" && !$("#summary-view").hidden) closeSummary(false);
       if (e.key === "Escape" && !$("#settings-view").hidden) closeSettings();
+      { const dd = $("#user-dropdown"); if (e.key === "Escape" && dd && !dd.hidden) closeUserMenu(); }
     });
     window.addEventListener("beforeunload", () => { if (dirty) saveNow(); if (planDirty) savePlanNow(); });
   }

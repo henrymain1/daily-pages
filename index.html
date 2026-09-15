@@ -8,7 +8,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%96%3C/text%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -126,107 +126,165 @@
     <header class="appbar">
       <div class="topbar">
         <div class="topbar-left">
-          <div class="brand small"><span class="brand-mark" aria-hidden="true"></span><span class="brand-name">Daily Pages</span></div>
+          <div class="brand small">
+            <svg class="brand-wave" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 17C7 17 9 11 12 11C15 11 17 21 20 21C23 21 25 15 28 15"></path></svg>
+            <span class="brand-name">Daily Pages</span>
+          </div>
         </div>
-        <div class="view-toggle" id="view-toggle" role="tablist" aria-label="Switch pages" data-view="journal">
-          <span class="view-toggle-thumb" aria-hidden="true"></span>
+        <nav class="view-toggle" id="view-toggle" role="tablist" aria-label="Switch pages" data-view="journal">
           <button class="view-toggle-opt" type="button" role="tab" data-view="journal">Journal</button>
           <button class="view-toggle-opt" type="button" role="tab" data-view="planner">Planner</button>
           <button class="view-toggle-opt" type="button" role="tab" data-view="lists">Lists</button>
-        </div>
+        </nav>
         <div class="topbar-right">
-          <div class="streak-badge" id="streak-badge" title="Current writing streak">🔥&nbsp;<span id="streak-num">0</span></div>
-          <button id="insights-btn" class="icon-btn ic ic-chart" type="button" title="Insights &amp; review" aria-label="Insights &amp; review"></button>
-          <button id="export-btn" class="icon-btn ic ic-download" type="button" title="Export all entries (.md)" aria-label="Export all entries"></button>
-          <button id="theme-toggle" class="icon-btn ic ic-theme" type="button" title="Toggle light / dark" aria-label="Toggle light / dark"></button>
-          <button id="settings-btn" class="icon-btn ic ic-settings" type="button" title="Settings" aria-label="Settings"></button>
+          <button id="search-btn" class="topbar-icon" type="button" title="Browse &amp; search entries" aria-label="Browse entries">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="20" y1="20" x2="16" y2="16"></line></svg>
+          </button>
           <div class="user-menu">
-            <div id="user-avatar" class="avatar" title=""></div>
-            <button id="logout-btn" class="btn btn-ghost" type="button">Log out</button>
+            <button id="user-avatar-btn" class="avatar-btn" type="button" aria-haspopup="menu" aria-expanded="false" title="Menu">
+              <span id="user-avatar" class="avatar" title=""></span>
+            </button>
+            <div id="user-dropdown" class="user-dropdown" role="menu" hidden>
+              <div class="user-dropdown-head">
+                <span id="user-dropdown-email" class="user-dropdown-email"></span>
+                <span class="streak-badge" id="streak-badge" title="Current writing streak">🔥&nbsp;<span id="streak-num">0</span>-day streak</span>
+              </div>
+              <button id="insights-btn" class="menu-item" type="button" role="menuitem"><span class="ic ic-chart" aria-hidden="true"></span> Insights &amp; review</button>
+              <button id="reader-btn" class="menu-item" type="button" role="menuitem"><span class="ic ic-book" aria-hidden="true"></span> Browse all entries</button>
+              <button id="export-btn" class="menu-item" type="button" role="menuitem"><span class="ic ic-download" aria-hidden="true"></span> Export as Markdown</button>
+              <button id="theme-toggle" class="menu-item" type="button" role="menuitem"><span class="ic ic-theme" aria-hidden="true"></span> Light / dark</button>
+              <button id="settings-btn" class="menu-item" type="button" role="menuitem"><span class="ic ic-settings" aria-hidden="true"></span> Settings</button>
+              <div class="menu-sep" aria-hidden="true"></div>
+              <button id="logout-btn" class="menu-item" type="button" role="menuitem">Log out</button>
+            </div>
           </div>
         </div>
       </div>
     </header>
 
-    <main id="journal-view" class="notebook">
-      <!-- Stationery rail: day navigation + tools -->
-      <div class="nb-rail">
-        <button id="back-today" class="btn btn-ghost nb-today" type="button" hidden>Return to today</button>
-        <div class="nb-pager">
-          <button id="day-prev" class="nb-arrow" type="button" title="Previous day — turn back a page" aria-label="Previous day">‹</button>
-          <span id="nb-page-label" class="nb-page-label">Page — of 365</span>
-          <button id="day-next" class="nb-arrow" type="button" title="Next day — turn a page" aria-label="Next day">›</button>
-        </div>
-        <button id="reader-btn" class="btn btn-ghost ic ic-book nb-reader" type="button" title="Reader mode">Read</button>
-      </div>
-
-      <div class="nb-desk">
-        <div class="nb-book" id="nb-book">
-          <div class="nb-cover">
-            <div class="nb-block">
-              <div class="nb-spread" id="nb-spread">
-                <!-- VERSO (left page) -->
-                <section class="nb-page nb-page-left" id="nb-page-left">
-                  <div class="nb-page-inner">
-                    <div class="nb-leaf-head">
-                      <div id="entry-daylabel" class="entry-daylabel">Today</div>
-                      <h2 id="entry-date" class="entry-date">—</h2>
-                    </div>
-
-                    <div class="mood-block">
-                      <span class="mood-label">Attunement · how are you feeling?</span>
-                      <div class="mood-row" id="mood-row"></div>
-                    </div>
-
-                    <div id="prompt-chip" class="prompt-chip" hidden></div>
-
-                    <div class="calendar nb-cal">
-                      <div class="cal-head">
-                        <button id="cal-prev" class="icon-btn" type="button" title="Previous month">‹</button>
-                        <div id="cal-title" class="cal-title">—</div>
-                        <button id="cal-next" class="icon-btn" type="button" title="Next month">›</button>
-                      </div>
-                      <div class="cal-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
-                      <div id="cal-grid" class="cal-grid"></div>
-                    </div>
-
-                    <div class="nb-presence">
-                      <span class="nb-presence-label">Mindful presence</span>
-                      <div class="nb-presence-val"><span id="stat-streak">0</span>-day ritual &nbsp;·&nbsp; <span id="stat-total">0</span> entries &nbsp;·&nbsp; <span id="stat-month">0</span> this month</div>
-                    </div>
-                  </div>
-                </section>
-
-                <!-- SPINE + BOOKMARK -->
-                <div class="nb-spine" aria-hidden="true"></div>
-                <div class="nb-ribbon" aria-hidden="true"></div>
-
-                <!-- RECTO (right page) -->
-                <section class="nb-page nb-page-right" id="nb-page-right">
-                  <div class="nb-page-inner">
-                    <div class="nb-recto-meta"><span>Smyth-sewn ivory leaves</span><span id="nb-page-num">p. —</span></div>
-                    <div id="entry-feed" class="entry-feed"></div>
-                    <form id="compose-form" class="compose">
-                      <textarea id="compose-input" class="compose-input" rows="2" placeholder="Speak honestly to these pages…"></textarea>
-                      <div class="compose-foot">
-                        <span id="save-status" class="save-status"></span>
-                        <span class="spacer"></span>
-                        <span class="compose-hint">⌘/Ctrl + Enter</span>
-                        <button class="btn btn-primary" type="submit">Blot &amp; Save</button>
-                      </div>
-                    </form>
-                  </div>
-                </section>
+    <main id="journal-view" class="dpj">
+      <div class="dpj-wrap">
+        <!-- LEFT: writing workspace -->
+        <section class="dpj-main">
+          <!-- Date + day navigation -->
+          <div class="dpj-datebar">
+            <div class="dpj-date-left">
+              <button class="dpj-navback js-prevday" type="button" title="Previous day" aria-label="Previous day">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 19l-7-7 7-7"></path></svg>
+              </button>
+              <div>
+                <span id="entry-daylabel" class="dpj-weekday">Today</span>
+                <h1 id="entry-date" class="dpj-date">—</h1>
               </div>
             </div>
+            <div class="dpj-date-actions">
+              <button id="back-today" class="dpj-today" type="button" title="Jump to today">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                <span>Today</span>
+              </button>
+              <button id="day-prev" class="dpj-dayarrow js-prevday" type="button" title="Previous day" aria-label="Previous day">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 19l-7-7 7-7"></path></svg>
+              </button>
+              <button id="day-next" class="dpj-dayarrow js-nextday" type="button" title="Next day" aria-label="Next day">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+              </button>
+            </div>
           </div>
-        </div>
+
+          <!-- Mood selector -->
+          <section class="dpj-mood">
+            <h2 class="dpj-h">How was your day?</h2>
+            <div class="dpj-mood-row" id="mood-row"></div>
+          </section>
+
+          <div id="prompt-chip" class="dpj-prompt" hidden></div>
+
+          <!-- Timeline of the day's entries -->
+          <section class="dpj-timeline">
+            <div id="entry-feed" class="entry-feed"></div>
+          </section>
+
+          <!-- New entry editor -->
+          <section class="dpj-editor">
+            <form id="compose-form" class="dpj-composer">
+              <textarea id="compose-input" class="dpj-composer-input" rows="3" placeholder="Write an entry…"></textarea>
+              <div class="dpj-composer-foot">
+                <div class="dpj-toolbar">
+                  <button class="dpj-tool dpj-tool-b" type="button" data-cmd="bold" title="Bold" aria-label="Bold">B</button>
+                  <button class="dpj-tool dpj-tool-i" type="button" data-cmd="italic" title="Italic" aria-label="Italic">I</button>
+                  <button class="dpj-tool" type="button" data-cmd="list" title="Bulleted list" aria-label="List">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><circle cx="3.5" cy="6" r="1.5" fill="currentColor"></circle><circle cx="3.5" cy="12" r="1.5" fill="currentColor"></circle><circle cx="3.5" cy="18" r="1.5" fill="currentColor"></circle></svg>
+                  </button>
+                  <button class="dpj-tool" type="button" data-cmd="link" title="Insert link" aria-label="Insert link">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                  </button>
+                  <button class="dpj-tool" type="button" data-cmd="mic" title="Voice note (coming soon)" aria-label="Voice note">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                  </button>
+                  <button class="dpj-tool" type="button" data-cmd="tag" title="Add tag (coming soon)" aria-label="Add tag">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                  </button>
+                </div>
+                <div class="dpj-composer-actions">
+                  <span id="compose-words" class="dpj-words">0 words</span>
+                  <button class="dpj-add-btn" type="submit">Add entry</button>
+                </div>
+              </div>
+            </form>
+            <div class="dpj-saved">
+              <span class="dpj-saved-dot" aria-hidden="true"></span>
+              <span id="save-status" class="save-status">Saved</span>
+            </div>
+          </section>
+        </section>
+
+        <!-- RIGHT: calendar + insights -->
+        <aside class="dpj-side">
+          <h2 class="dpj-side-title">Your journal</h2>
+
+          <div class="dpj-cal">
+            <div class="dpj-cal-head">
+              <button id="cal-prev" class="dpj-cal-arrow" type="button" title="Previous month" aria-label="Previous month">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 19l-7-7 7-7"></path></svg>
+              </button>
+              <span id="cal-title" class="dpj-cal-title">—</span>
+              <button id="cal-next" class="dpj-cal-arrow" type="button" title="Next month" aria-label="Next month">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+              </button>
+            </div>
+            <div class="dpj-cal-dow"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+            <div id="cal-grid" class="dpj-cal-grid"></div>
+            <div id="mood-legend" class="dpj-cal-legend"></div>
+          </div>
+
+          <section class="dpj-insights">
+            <button id="insights-open" class="dpj-insights-head" type="button" title="Open full review">
+              <span>Journal insights</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+            </button>
+            <span id="si-month" class="dpj-insights-month">—</span>
+            <div class="dpj-stats">
+              <div class="dpj-stat-row"><span>Average day</span><b id="si-avg">—</b></div>
+              <div class="dpj-stat-row"><span>Days journaled</span><b id="si-days">—</b></div>
+              <div class="dpj-stat-row"><span>Total entries</span><b id="si-total">—</b></div>
+            </div>
+            <div class="dpj-mooddist">
+              <span class="dpj-mini-h">Mood</span>
+              <div id="si-mooddist" class="dpj-mooddist-bars"></div>
+            </div>
+            <div class="dpj-bestdays">
+              <span class="dpj-mini-h">Best days</span>
+              <div id="si-bestdays" class="dpj-bestdays-body"></div>
+            </div>
+          </section>
+        </aside>
       </div>
 
-      <!-- kept in the DOM for search/index logic; not shown on the spread -->
-      <div class="nb-offscreen" hidden aria-hidden="true">
+      <!-- kept in the DOM for search/index + stats logic; not shown -->
+      <div class="dp-offscreen" hidden aria-hidden="true">
         <input id="search" type="search" />
         <div id="entries-list"></div>
+        <span id="stat-streak"></span><span id="stat-total"></span><span id="stat-month"></span>
       </div>
     </main>
 
@@ -336,6 +394,11 @@
         <div class="insights-section">
           <h3 class="insights-h">Appearance</h3>
           <div class="skin-options">
+            <button class="skin-option" type="button" data-skin="sanctuary">
+              <span class="skin-swatch skin-swatch-sanctuary"></span>
+              <span class="skin-name">Sanctuary</span>
+              <span class="skin-desc">Calm &amp; airy</span>
+            </button>
             <button class="skin-option" type="button" data-skin="almanac">
               <span class="skin-swatch skin-swatch-almanac"></span>
               <span class="skin-name">Almanac</span>
