@@ -582,8 +582,8 @@
       const row = byDate.get(ds);
       if (row && sectionsOf(row).length > 0) {
         cell.classList.add("has");
-        // fill the day with its mood colour; the number knocks out in the bg colour
-        dayEl.style.background = MOOD_DOT[row.mood] || "#cbd5e1";
+        // fill the whole day cell with its mood colour; the number knocks out in the bg colour
+        cell.style.background = MOOD_DOT[row.mood] || "#cbd5e1";
       }
       if (ds === today) cell.classList.add("today");
       if (ds === selectedDate) cell.classList.add("selected");
