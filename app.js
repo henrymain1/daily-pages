@@ -1046,6 +1046,7 @@
     planItems = row && Array.isArray(row.items)
       ? row.items.map((it) => ({ ...it, subs: Array.isArray(it.subs) ? it.subs.map((s) => ({ ...s })) : [] }))
       : [];
+    loadSchedule();
   }
 
   function setPlanLoading(on) { const s = $("#plan-loading"); if (s) s.hidden = !on; }
@@ -1058,6 +1059,7 @@
     $("#plan-focus").value = planFocus;
     renderPlanList();
     updatePlanProgress();
+    renderSchedule();
     const has = plansLoaded && (planFocus.trim() || planItems.length);
     setPlanStatus(has ? "Saved" : "", !!has);
   }
@@ -1159,6 +1161,136 @@
     if (error) { setPlanStatus("Save failed", false); toast("Plan save failed: " + error.message); return; }
     plansByDate.set(planDate, data);
     planDirty = false; setPlanStatus("Saved ✓", true);
+  }
+
+  // ---- Day schedule (time blocks) -------------------------------------------
+  // Stored per day in localStorage (per device for now). Block = { id, start, dur, title, c }
+  // start/dur are minutes; start is minutes-from-midnight.
+  const SCHED_START_H = 6, SCHED_END_H = 24, HOUR_PX = 56, SNAP_MIN = 15, SCHED_COLORS = 6;
+  const DAY_MIN0 = SCHED_START_H * 60, DAY_MIN1 = SCHED_END_H * 60;
+  let scheduleBlocks = [];
+  let schedSaveTimer = null;
+
+  function schedKey(d) { return `dp-sched-${currentUser ? currentUser.id : "anon"}-${d}`; }
+  function loadSchedule() {
+    scheduleBlocks = [];
+    try {
+      const raw = localStorage.getItem(schedKey(planDate));
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) scheduleBlocks = arr
+          .filter((b) => b && typeof b.start === "number" && typeof b.dur === "number")
+          .map((b) => ({ id: b.id || uid(), start: b.start, dur: Math.max(SNAP_MIN, b.dur), title: b.title || "", c: ((b.c | 0) % SCHED_COLORS + SCHED_COLORS) % SCHED_COLORS }));
+      }
+    } catch (e) {}
+  }
+  function saveSchedule() {
+    try {
+      if (scheduleBlocks.length) localStorage.setItem(schedKey(planDate), JSON.stringify(scheduleBlocks));
+      else localStorage.removeItem(schedKey(planDate));
+    } catch (e) {}
+  }
+  function saveScheduleSoon() { clearTimeout(schedSaveTimer); schedSaveTimer = setTimeout(saveSchedule, 400); }
+  const snapMin = (m) => Math.round(m / SNAP_MIN) * SNAP_MIN;
+  function fmtMin(m) {
+    m = ((Math.round(m) % 1440) + 1440) % 1440;
+    let h = Math.floor(m / 60); const mm = m % 60; const ap = h < 12 ? "AM" : "PM";
+    let h12 = h % 12; if (h12 === 0) h12 = 12;
+    return `${h12}:${String(mm).padStart(2, "0")} ${ap}`;
+  }
+  function fmtHour(h) { const hh = h % 24; const ap = hh < 12 ? "AM" : "PM"; let h12 = hh % 12; if (h12 === 0) h12 = 12; return `${h12} ${ap}`; }
+
+  function renderSchedule() {
+    const host = $("#plan-schedule"); if (!host) return;
+    const prevScroll = host.querySelector(".dpp-sched-grid") ? host.scrollTop : null;
+    host.innerHTML = "";
+    const grid = el("div", { className: "dpp-sched-grid" });
+    grid.style.height = ((DAY_MIN1 - DAY_MIN0) / 60 * HOUR_PX + 8) + "px";
+
+    for (let h = SCHED_START_H; h <= SCHED_END_H; h++) {
+      const top = (h - SCHED_START_H) * HOUR_PX + 4;
+      const line = el("div", { className: "dpp-hour" }); line.style.top = top + "px"; grid.append(line);
+      if (h < SCHED_END_H) { const lab = el("span", { className: "dpp-hour-label", textContent: fmtHour(h) }); lab.style.top = top + "px"; grid.append(lab); }
+    }
+    if (planDate === todayStr()) {
+      const now = new Date(); const nm = now.getHours() * 60 + now.getMinutes();
+      if (nm >= DAY_MIN0 && nm <= DAY_MIN1) { const n = el("div", { className: "dpp-now" }); n.style.top = ((nm - DAY_MIN0) / 60 * HOUR_PX + 4) + "px"; grid.append(n); }
+    }
+    scheduleBlocks.forEach((b) => grid.append(buildSchedBlock(b, grid)));
+
+    // click empty area to add a block
+    grid.addEventListener("pointerdown", (e) => {
+      if (e.target !== grid && !e.target.classList.contains("dpp-hour")) return;
+      const rect = grid.getBoundingClientRect();
+      const y = e.clientY - rect.top - 4;
+      let start = snapMin(DAY_MIN0 + y / HOUR_PX * 60);
+      start = Math.max(DAY_MIN0, Math.min(start, DAY_MIN1 - 60));
+      addSchedBlock(start, 60);
+    });
+
+    host.append(grid);
+    if (prevScroll != null) host.scrollTop = prevScroll;
+    else {
+      const focusMin = planDate === todayStr() ? (new Date().getHours() * 60 + new Date().getMinutes()) - 30 : 8 * 60;
+      host.scrollTop = Math.max(0, (Math.max(DAY_MIN0, focusMin) - DAY_MIN0) / 60 * HOUR_PX);
+    }
+  }
+
+  function addSchedBlock(start, dur) {
+    const b = { id: uid(), start, dur, title: "", c: scheduleBlocks.length % SCHED_COLORS };
+    scheduleBlocks.push(b);
+    saveSchedule();
+    renderSchedule();
+    const node = document.querySelector(`.dpp-block[data-id="${b.id}"] .dpp-block-title`);
+    if (node) node.focus();
+  }
+
+  function buildSchedBlock(b, grid) {
+    const box = el("div", { className: "dpp-block c" + b.c });
+    box.dataset.id = b.id;
+    const place = () => { box.style.top = ((b.start - DAY_MIN0) / 60 * HOUR_PX + 4) + "px"; box.style.height = (b.dur / 60 * HOUR_PX) + "px"; };
+    place();
+    const title = el("input", { className: "dpp-block-title", value: b.title, placeholder: "New block" });
+    title.addEventListener("pointerdown", (e) => e.stopPropagation());
+    title.addEventListener("input", () => { b.title = title.value; saveScheduleSoon(); });
+    const time = el("div", { className: "dpp-block-time", textContent: fmtMin(b.start) + " – " + fmtMin(b.start + b.dur) });
+    const del = el("button", { className: "dpp-block-del", type: "button", title: "Delete block", textContent: "✕" });
+    del.addEventListener("pointerdown", (e) => e.stopPropagation());
+    del.addEventListener("click", () => { scheduleBlocks = scheduleBlocks.filter((x) => x !== b); saveSchedule(); renderSchedule(); });
+    const resize = el("div", { className: "dpp-block-resize" });
+    box.append(title, time, del, resize);
+    const setTime = () => { time.textContent = fmtMin(b.start) + " – " + fmtMin(b.start + b.dur); };
+    schedDrag(box, b, "move", box, place, setTime);
+    schedDrag(resize, b, "resize", box, place, setTime);
+    return box;
+  }
+
+  function schedDrag(handle, b, mode, box, place, setTime) {
+    handle.addEventListener("pointerdown", (e) => {
+      if (e.button != null && e.button !== 0) return;
+      e.preventDefault(); e.stopPropagation();
+      const startY = e.clientY, origStart = b.start, origDur = b.dur;
+      const onMove = (ev) => {
+        const dMin = (ev.clientY - startY) / HOUR_PX * 60;
+        if (mode === "move") {
+          let ns = snapMin(origStart + dMin);
+          ns = Math.max(DAY_MIN0, Math.min(ns, DAY_MIN1 - b.dur));
+          b.start = ns;
+        } else {
+          let nd = snapMin(origDur + dMin);
+          nd = Math.max(SNAP_MIN, Math.min(nd, DAY_MIN1 - b.start));
+          b.dur = nd;
+        }
+        place(); setTime();
+      };
+      const onUp = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        saveSchedule();
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    });
   }
 
   // ---- Lists (dashboard) ----------------------------------------------------

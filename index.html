@@ -373,41 +373,54 @@
     </main>
 
     <!-- Planner (distinct page) -->
-    <main id="planner-view" class="planner" hidden>
-      <section class="planner-pane card">
-        <div class="planner-head">
-          <div class="planner-head-left">
-            <div id="plan-daylabel" class="entry-daylabel">Today's plan</div>
-            <h2 id="plan-date" class="entry-date">—</h2>
-          </div>
-          <div class="planner-head-right">
-            <div class="plan-nav">
-              <button id="plan-prev" class="icon-btn" type="button" title="Previous day">‹</button>
-              <button id="plan-today" class="btn btn-ghost" type="button" hidden>Today</button>
-              <button id="plan-next" class="icon-btn" type="button" title="Next day">›</button>
+    <main id="planner-view" class="dpp" hidden>
+      <div class="dpp-wrap">
+        <!-- LEFT: focus + to-do -->
+        <section class="dpp-main">
+          <div class="dpp-datebar">
+            <div class="dpp-date-left">
+              <span id="plan-daylabel" class="dpp-eyebrow">Today's plan</span>
+              <h1 id="plan-date" class="dpp-date">—</h1>
+            </div>
+            <div class="dpp-date-actions">
+              <button id="plan-today" class="dpj-today" type="button" title="Jump to today" hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                <span>Today</span>
+              </button>
+              <button id="plan-prev" class="dpj-dayarrow" type="button" title="Previous day" aria-label="Previous day">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 19l-7-7 7-7"></path></svg>
+              </button>
+              <button id="plan-next" class="dpj-dayarrow" type="button" title="Next day" aria-label="Next day">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+              </button>
               <span id="plan-loading" class="mini-spinner" hidden></span>
             </div>
-            <span id="plan-progress" class="plan-progress" hidden></span>
           </div>
-        </div>
 
-        <div id="plan-setup" class="plan-setup" hidden></div>
+          <div id="plan-setup" class="plan-setup" hidden></div>
 
-        <div id="plan-body">
-          <label class="plan-focus-label" for="plan-focus">🎯 Today's focus</label>
-          <input id="plan-focus" class="plan-focus" placeholder="The one thing that matters most today…" />
+          <div id="plan-body">
+            <div class="dpp-sec-head"><span class="dpj-h">Today's focus</span><span id="plan-save-status" class="save-status"></span></div>
+            <input id="plan-focus" class="dpp-focus" placeholder="The one thing that matters most today…" />
 
-          <div class="plan-todo-head">
-            <span class="plan-h">To-do</span>
-            <span id="plan-save-status" class="save-status"></span>
+            <div class="dpp-sec-head dpp-todo-head"><span class="dpj-h">To-do</span><span id="plan-progress" class="dpp-progress" hidden></span></div>
+            <div id="plan-list" class="plan-list"></div>
+            <form id="plan-add-form" class="dpp-add">
+              <input id="plan-add-input" class="dpp-add-input" placeholder="Add a task and press Enter…" autocomplete="off" />
+              <button class="dpp-add-btn" type="submit">Add</button>
+            </form>
           </div>
-          <div id="plan-list" class="plan-list"></div>
-          <form id="plan-add-form" class="plan-add">
-            <input id="plan-add-input" class="plan-add-input" placeholder="Add a task and press Enter…" autocomplete="off" />
-            <button class="btn btn-primary plan-add-btn" type="submit">Add</button>
-          </form>
-        </div>
-      </section>
+        </section>
+
+        <!-- RIGHT: day schedule (time blocks) -->
+        <aside class="dpp-side">
+          <div class="dpp-sec-head">
+            <span class="dpj-h">Schedule</span>
+            <span class="dpp-sched-hint">Click to add · drag the edge to resize</span>
+          </div>
+          <div id="plan-schedule" class="dpp-sched"></div>
+        </aside>
+      </div>
     </main>
 
     <!-- Lists (dashboard of widgets) -->
