@@ -304,10 +304,37 @@
   let authMode = "login";
   function setAuthMode(mode) {
     authMode = mode;
+    const isLogin = mode === "login";
+    const set = (sel, txt) => { const n = $(sel); if (n) n.textContent = txt; };
     $$(".seg-btn").forEach((b) => b.classList.toggle("is-active", b.dataset.mode === mode));
-    $("#auth-submit").textContent = mode === "login" ? "Log in" : "Create account";
-    $("#password").setAttribute("autocomplete", mode === "login" ? "current-password" : "new-password");
+    set("#auth-submit-label", isLogin ? "Log in" : "Create account");
+    set("#auth-title", isLogin ? "Welcome back" : "Create your account");
+    set("#auth-subtitle", isLogin ? "Sign in to continue your daily pages." : "Start your first daily page.");
+    set("#auth-toggle-q", isLogin ? "Don't have an account?" : "Already have an account?");
+    set("#auth-toggle", isLogin ? "Sign up" : "Log in");
+    const p = $("#password"); if (p) p.setAttribute("autocomplete", isLogin ? "current-password" : "new-password");
     hideMsg();
+  }
+
+  // Google OAuth via Supabase (button is live; shows a gentle note until the
+  // provider is enabled in the Supabase dashboard).
+  async function signInGoogle() {
+    if (!sb) return;
+    hideMsg();
+    // Gated on a config flag so the button never bounces to a broken provider
+    // page before Google is enabled in the Supabase dashboard.
+    if (!cfg.GOOGLE_ENABLED) {
+      showMsg("Google sign-in isn't set up yet — please use email & password for now.", "err");
+      return;
+    }
+    try {
+      const redirectTo = window.location.origin + window.location.pathname;
+      const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
+      if (error) throw error;
+      // on success the browser redirects to Google
+    } catch (e) {
+      showMsg("Couldn't start Google sign-in. Please try email & password.", "err");
+    }
   }
 
   // ---- Data -----------------------------------------------------------------
@@ -1438,6 +1465,14 @@
     // auth
     $$(".seg-btn").forEach((b) => b.addEventListener("click", () => setAuthMode(b.dataset.mode)));
     $("#auth-form").addEventListener("submit", onAuthSubmit);
+    { const t = $("#auth-toggle"); if (t) t.addEventListener("click", () => setAuthMode(authMode === "login" ? "signup" : "login")); }
+    { const g = $("#auth-google"); if (g) g.addEventListener("click", signInGoogle); }
+    { const eye = $("#auth-eye"); if (eye) eye.addEventListener("click", () => {
+        const p = $("#password"); if (!p) return;
+        const show = p.type === "password"; p.type = show ? "text" : "password";
+        eye.classList.toggle("is-on", show);
+        eye.setAttribute("aria-label", show ? "Hide password" : "Show password");
+      }); }
     $("#logout-btn").addEventListener("click", async () => { await maybeFlush(); await sb.auth.signOut(); });
 
     // landing → auth
@@ -1542,9 +1577,9 @@
     const email = $("#email").value.trim();
     const password = $("#password").value;
     const btn = $("#auth-submit");
+    const lbl = $("#auth-submit-label");
     btn.disabled = true;
-    const label = btn.textContent;
-    btn.textContent = "…";
+    if (lbl) lbl.textContent = "…";
     hideMsg();
     try {
       if (authMode === "login") {
@@ -1564,7 +1599,7 @@
       showMsg(err.message || "Something went wrong. Please try again.", "err");
     } finally {
       btn.disabled = false;
-      btn.textContent = authMode === "login" ? "Log in" : "Create account";
+      if (lbl) lbl.textContent = authMode === "login" ? "Log in" : "Create account";
     }
   }
 

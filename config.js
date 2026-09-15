@@ -22,4 +22,10 @@ window.JOURNAL_CONFIG = {
   // the function URL here, e.g.:
   //   https://dzorirqyxjrgascpptea.supabase.co/functions/v1/weekly-summary
   AI_SUMMARY_URL: "",
+
+  // "Continue with Google" button. Keep this false until you've enabled the
+  // Google provider in the Supabase dashboard (Authentication → Providers →
+  // Google) — otherwise the button just shows a gentle "not set up yet" note.
+  // Flip to true after setup and the button will sign in with Google.
+  GOOGLE_ENABLED: false,
 };
