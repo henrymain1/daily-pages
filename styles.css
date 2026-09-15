@@ -1263,7 +1263,21 @@ code {
 /* Desktop: free-floating cards on a canvas (kept inside the canvas width) */
 .lists-canvas { position: relative; min-height: 70vh; }
 .lists-canvas .list-window { position: absolute; }
-.list-window { --la: #7c6cf0; display: flex; flex-direction: column; overflow: visible; padding: 0.85rem 1rem 0.95rem; background: var(--surface); border: 1px solid var(--dpj-cardline, var(--edge)); border-radius: 18px; box-shadow: var(--sh-lg); }
+.list-window {
+  --la: #7c6cf0;
+  --la-bg: color-mix(in srgb, var(--la), #ffffff 88%);
+  --la-ink: color-mix(in srgb, var(--la), #191926 50%);
+  --la-track: color-mix(in srgb, var(--la), #ffffff 74%);
+  --la-line: color-mix(in srgb, var(--la), transparent 72%);
+  display: flex; flex-direction: column; overflow: hidden; padding: 0.85rem 0.7rem 0.9rem;
+  background: var(--la-bg); border: 1px solid var(--la-line); border-radius: 18px; box-shadow: var(--sh-lg);
+}
+:root[data-theme="dark"] .list-window {
+  --la-bg: color-mix(in srgb, var(--la), #0f172a 80%);
+  --la-ink: color-mix(in srgb, var(--la), #ffffff 58%);
+  --la-track: color-mix(in srgb, var(--la), #0f172a 55%);
+  --la-line: color-mix(in srgb, var(--la), transparent 62%);
+}
 .list-window.dragging { user-select: none; }
 .list-items, .list-color-pop { scrollbar-width: thin; }
 /* Mobile: a tidy single-column stack, no dragging */
@@ -1278,41 +1292,43 @@ code {
 .lists-canvas .list-widget-head { cursor: grab; touch-action: none; }
 .lists-canvas .list-window.dragging .list-widget-head { cursor: grabbing; }
 .list-head-spacer { flex: 1; align-self: stretch; min-width: 1.5rem; }
-.list-dot { flex: none; width: 15px; height: 15px; border-radius: 50%; border: none; background: var(--la); cursor: pointer; padding: 0; box-shadow: 0 0 0 3px color-mix(in srgb, var(--la), transparent 82%); }
-.list-clear, .list-del { flex: none; border: none; background: transparent; color: var(--dpj-faint, var(--muted)); cursor: pointer; padding: 0.2rem; border-radius: 6px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
+.list-dot { flex: none; width: 15px; height: 15px; border-radius: 50%; border: none; background: var(--la); cursor: pointer; padding: 0; box-shadow: 0 0 0 3px color-mix(in srgb, var(--la), transparent 78%); }
+.list-clear, .list-del { flex: none; border: none; background: transparent; color: color-mix(in srgb, var(--la-ink), transparent 32%); cursor: pointer; padding: 0.2rem; border-radius: 6px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
 .list-clear svg { width: 1rem; height: 1rem; }
 .list-del { font-size: 0.9rem; }
-.list-clear:hover { color: var(--dpj-navy, var(--primary)); background: var(--surface-2); }
-.list-del:hover { color: var(--danger, #ef4444); background: var(--surface-2); }
+.list-clear:hover { color: var(--la-ink); background: color-mix(in srgb, var(--la), transparent 82%); }
+.list-del:hover { color: var(--danger, #ef4444); background: color-mix(in srgb, var(--danger, #ef4444), transparent 88%); }
 .list-color-pop { position: absolute; top: 1.7rem; left: 0; z-index: 10; display: flex; gap: 0.4rem; padding: 0.5rem; background: var(--surface); border: 1px solid var(--dpj-cardline, var(--edge)); border-radius: 12px; box-shadow: var(--sh-lg); }
 .list-swatch { width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
 .list-swatch.sel { border-color: var(--dpj-ink, var(--ink)); }
 
-.list-title-input { width: 100%; border: none; background: transparent; font: inherit; font-family: "Plus Jakarta Sans", system-ui, sans-serif; font-weight: 700; font-size: 1.1rem; color: var(--dpj-navy, var(--primary)); padding: 0.1rem 0; margin-bottom: 0.35rem; outline: none; }
-.list-title-input::placeholder { color: var(--dpj-faint, var(--muted)); }
+.list-title-input { width: 100%; border: none; background: transparent; font: inherit; font-family: "Plus Jakarta Sans", system-ui, sans-serif; font-weight: 700; font-size: 1.1rem; color: var(--la-ink); padding: 0.1rem 0; margin-bottom: 0.35rem; outline: none; }
+.list-title-input::placeholder { color: color-mix(in srgb, var(--la-ink), transparent 55%); }
 .list-title-input:focus { box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--la), transparent 35%); }
 
 .list-progress { margin-bottom: 0.8rem; }
-.list-progress-label { display: block; font-size: 0.72rem; font-weight: 500; color: var(--dpj-muted, var(--muted)); margin-bottom: 0.35rem; }
-.list-bar { height: 6px; border-radius: 999px; background: var(--dpj-divider, var(--surface-2)); overflow: hidden; }
+.list-progress-label { display: block; font-size: 0.72rem; font-weight: 500; color: color-mix(in srgb, var(--la-ink), transparent 28%); margin-bottom: 0.35rem; }
+.list-bar { height: 6px; border-radius: 999px; background: var(--la-track); overflow: hidden; }
 .list-bar-fill { height: 100%; border-radius: 999px; background: var(--la); transition: width 0.25s ease; }
 
-/* items span the full card width */
-.list-items { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.1rem; }
-.list-item { display: flex; align-items: center; gap: 0.6rem; padding: 0.22rem 0; }
-.list-item.done .list-item-text { text-decoration: line-through; color: var(--dpj-faint, var(--muted)); }
-.list-check { flex: none; width: 20px; height: 20px; border: 1.6px solid var(--dpj-cardline, var(--edge)); border-radius: 6px; background: var(--surface); cursor: pointer; padding: 0; }
+/* items reach wider than the title / add-item box (out to near the card edge) */
+.list-items { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.1rem; margin: 0 -0.35rem; padding: 0; }
+.list-item { display: flex; align-items: center; gap: 0.55rem; padding: 0.24rem 0; }
+.list-item.done .list-item-text { text-decoration: line-through; opacity: 0.6; }
+.list-check { flex: none; width: 20px; height: 20px; border: 1.6px solid color-mix(in srgb, var(--la), transparent 45%); border-radius: 6px; background: color-mix(in srgb, var(--la-bg), #ffffff 45%); cursor: pointer; padding: 0; }
+:root[data-theme="dark"] .list-check { background: color-mix(in srgb, var(--la-bg), #000000 20%); }
 .list-check.checked { background: var(--la); border-color: var(--la); }
 .list-check.checked::after { content: "✓"; display: block; text-align: center; line-height: 17px; font-size: 0.72rem; color: #fff; }
-.list-item-text { flex: 1; min-width: 0; font: inherit; font-size: 0.92rem; border: none; background: transparent; color: var(--dpj-ink, var(--ink)); padding: 0.15rem 0; }
+.list-item-text { flex: 1; min-width: 0; font: inherit; font-size: 0.92rem; border: none; background: transparent; color: var(--la-ink); padding: 0.15rem 0; }
 .list-item-text:focus { outline: none; }
-.list-item-del { flex: none; border: none; background: transparent; color: var(--dpj-faint, var(--muted)); cursor: pointer; font-size: 0.72rem; padding: 0.1rem 0.3rem; opacity: 0; }
-.list-item:hover .list-item-del { opacity: 0.6; }
+.list-item-del { flex: none; border: none; background: transparent; color: color-mix(in srgb, var(--la-ink), transparent 35%); cursor: pointer; font-size: 0.72rem; padding: 0.1rem 0.3rem; opacity: 0; }
+.list-item:hover .list-item-del { opacity: 0.7; }
 .list-item-del:hover { color: var(--danger, #ef4444); opacity: 1; }
 .list-add { margin-top: 0.6rem; display: flex; }
-.list-add-input2 { flex: 1; min-width: 0; font: inherit; font-size: 0.85rem; padding: 0.5rem 0.7rem; border: 1px solid var(--dpj-cardline, var(--edge)); border-radius: 10px; background: var(--surface); color: var(--dpj-ink, var(--ink)); }
-.list-add-input2::placeholder { color: var(--dpj-faint, var(--muted)); }
-.list-add-input2:focus { outline: none; border-color: color-mix(in srgb, var(--la), transparent 45%); box-shadow: 0 0 0 3px color-mix(in srgb, var(--la), transparent 85%); }
+.list-add-input2 { flex: 1; min-width: 0; font: inherit; font-size: 0.85rem; padding: 0.5rem 0.7rem; border: 1px solid var(--la-line); border-radius: 10px; background: color-mix(in srgb, var(--la-bg), #ffffff 55%); color: var(--la-ink); }
+:root[data-theme="dark"] .list-add-input2 { background: color-mix(in srgb, var(--la-bg), #000000 15%); }
+.list-add-input2::placeholder { color: color-mix(in srgb, var(--la-ink), transparent 50%); }
+.list-add-input2:focus { outline: none; border-color: color-mix(in srgb, var(--la), transparent 35%); box-shadow: 0 0 0 3px color-mix(in srgb, var(--la), transparent 85%); }
 
 /* ============================================================
    "Sanctuary" skin  +  the two-column Journal workspace
