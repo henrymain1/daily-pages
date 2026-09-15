@@ -1028,9 +1028,9 @@ code {
   --font-display: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-body: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  --bg: #f8fafc;
+  --bg: #f7f7f5;            /* warm porcelain (per reference) */
   --surface: #ffffff;
-  --surface-2: #f1f5f9;
+  --surface-2: #efeee9;     /* warm light grey */
   --ink: #1e293b;
   --muted: #64748b;
 
@@ -1038,31 +1038,31 @@ code {
   --primary-ink: #ffffff;
   --primary-weak: #eef3f8;
 
-  --edge: #e8eef5;
+  --edge: #e7e5df;          /* warm hairline */
   --grid: transparent;
   --shadow-col: transparent;
 
   --bw: 1px;
   --radius: 16px;
   --radius-sm: 12px;
-  --sh: 0 1px 3px rgba(27, 59, 95, 0.05);
-  --sh-lg: 0 8px 24px -4px rgba(59, 85, 110, 0.08), 0 2px 8px -2px rgba(59, 85, 110, 0.04);
+  --sh: 0 1px 3px rgba(60, 55, 45, 0.05);
+  --sh-lg: 0 8px 24px -4px rgba(60, 55, 45, 0.08), 0 2px 8px -2px rgba(60, 55, 45, 0.05);
 
   /* journal-specific */
   --dpj-navy: #1b3b5f;
   --dpj-ink: #1e293b;
   --dpj-muted: #64748b;
   --dpj-faint: #94a3b8;
-  --dpj-line: #e2e8f0;
-  --dpj-divider: #eef2f6;
-  --dpj-cardline: #d8e2ec;
-  --dpj-editorline: rgba(203, 213, 225, 0.7);
-  --dpj-side-bg: #f8fafc;
-  --dpj-pill: #eef3f8;
-  --dpj-pill-hover: #e2ebf4;
-  --dpj-avatar-bg: #e2e8f0;
+  --dpj-line: #e6e4dd;
+  --dpj-divider: #efede7;
+  --dpj-cardline: #e2e0d8;
+  --dpj-editorline: #e0ddd3;
+  --dpj-side-bg: #f7f7f5;
+  --dpj-pill: #efeee8;
+  --dpj-pill-hover: #e8e6de;
+  --dpj-avatar-bg: #e7e4dd;
   --dpj-avatar-ink: #475569;
-  --dpj-menu-hover: #f1f5f9;
+  --dpj-menu-hover: #f2f1ec;
 }
 :root[data-skin="sanctuary"][data-theme="dark"] {
   --bg: #0f172a;
@@ -1104,7 +1104,7 @@ code {
    Header chrome (token-driven so every skin can wear it)
    ============================================================ */
 .appbar { position: sticky; top: 0; z-index: 40; }
-.topbar { display: flex; align-items: center; gap: 1rem; padding: 0.65rem 1.5rem; flex-wrap: nowrap; }
+.topbar { display: flex; align-items: center; gap: 1rem; padding: 0.65rem 1.5rem; flex-wrap: nowrap; max-width: 1280px; width: 100%; margin: 0 auto; }
 .topbar-left { flex: 1 1 0; min-width: 0; }
 .topbar-right { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem; }
 
@@ -1188,7 +1188,7 @@ code {
   font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   color: var(--dpj-ink, var(--ink));
 }
-.dpj-wrap { display: flex; max-width: 1600px; width: 100%; margin: 0 auto; align-items: stretch; }
+.dpj-wrap { display: flex; max-width: 1280px; width: 100%; margin: 0 auto; align-items: stretch; }
 .dpj-main { flex: 1 1 auto; min-width: 0; max-width: 56rem; padding: 2rem 2rem 3rem; }
 @media (min-width: 1024px) { .dpj-main { padding: 2rem 3.5rem 3rem; } }
 
@@ -1258,7 +1258,7 @@ code {
 /* Daily prompt (gentle nudge) */
 .dpj-prompt {
   margin: -1.5rem 0 2.5rem; padding: 0.85rem 1rem; border-radius: 12px;
-  background: var(--primary-weak); color: var(--dpj-navy, var(--primary));
+  background: var(--surface-2); color: var(--dpj-navy, var(--primary));
   font-size: 0.9rem; line-height: 1.5; border: 1px solid var(--edge);
 }
 
