@@ -1158,6 +1158,33 @@ code {
 :root[data-theme="dark"] .dpp-block.c4 { background: #35172a; border-color: #c96f9b; }
 :root[data-theme="dark"] .dpp-block.c5 { background: #241f3f; border-color: #8f74cf; }
 :root[data-theme="dark"] .dpp-block-del { background: rgba(0, 0, 0, 0.28); color: #cbd5e1; }
+.dpp-block-gcal { position: absolute; top: 3px; right: 22px; width: 18px; height: 18px; border: none; background: rgba(255, 255, 255, 0.6); color: #475569; border-radius: 5px; cursor: pointer; opacity: 0; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+.dpp-block:hover .dpp-block-gcal { opacity: 1; }
+.dpp-block-gcal svg { width: 0.8rem; height: 0.8rem; }
+:root[data-theme="dark"] .dpp-block-gcal { background: rgba(0, 0, 0, 0.25); color: #cbd5e1; }
+
+/* deadline markers (from to-do items with a time) */
+.dpp-deadline { position: absolute; left: 3.5rem; right: 0.6rem; transform: translateY(-50%); display: flex; align-items: center; gap: 0.4rem; z-index: 7; padding: 0.14rem 0.5rem; border-radius: 999px; background: color-mix(in srgb, #ef6b6b, #ffffff 85%); border: 1px solid color-mix(in srgb, #ef6b6b, transparent 55%); box-shadow: 0 1px 3px rgba(30, 45, 70, 0.1); }
+:root[data-theme="dark"] .dpp-deadline { background: color-mix(in srgb, #ef6b6b, #0f172a 74%); }
+.dpp-deadline.done { opacity: 0.55; }
+.dpp-dl-check { flex: none; width: 15px; height: 15px; border: 1.5px solid #d9534f; border-radius: 4px; background: transparent; cursor: pointer; padding: 0; }
+.dpp-dl-check.checked { background: #e0605c; border-color: #e0605c; }
+.dpp-dl-check.checked::after { content: "✓"; display: block; text-align: center; line-height: 12px; font-size: 0.62rem; color: #fff; }
+.dpp-dl-text { flex: 1; min-width: 0; font-size: 0.72rem; font-weight: 600; color: #b23b37; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root[data-theme="dark"] .dpp-dl-text { color: #f0a8a4; }
+.dpp-deadline.done .dpp-dl-text { text-decoration: line-through; }
+.dpp-dl-time { flex: none; font-size: 0.66rem; color: color-mix(in srgb, #b23b37, transparent 25%); }
+:root[data-theme="dark"] .dpp-dl-time { color: color-mix(in srgb, #f0a8a4, transparent 25%); }
+.dpp-dl-gcal { flex: none; border: none; background: transparent; color: #b23b37; cursor: pointer; padding: 0.1rem; display: inline-flex; opacity: 0; }
+.dpp-deadline:hover .dpp-dl-gcal { opacity: 0.85; }
+.dpp-dl-gcal svg { width: 0.85rem; height: 0.85rem; }
+:root[data-theme="dark"] .dpp-dl-gcal { color: #f0a8a4; }
+
+/* deadline time control on a to-do row */
+.dpp .plan-time-input { display: none; flex: none; font: inherit; font-size: 0.74rem; color: var(--dpj-muted, var(--muted)); background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 0.08rem 0.3rem; }
+.dpp .plan-row:hover .plan-time-input, .dpp .plan-row:focus-within .plan-time-input, .dpp .plan-time-input.has { display: inline-flex; }
+.dpp .plan-time-input.has { color: var(--dpj-navy, var(--primary)); background: var(--primary-weak); border-color: color-mix(in srgb, var(--primary), transparent 70%); }
+:root[data-theme="dark"] .dpp .plan-time-input { color-scheme: dark; }
 
 @media (max-width: 900px) {
   .dpp-wrap { grid-template-columns: minmax(0, 1fr); gap: 1.75rem; padding: 1.5rem 1.25rem 2.5rem; }

@@ -1113,9 +1113,19 @@
     txt.dataset.id = node.id;
     txt.addEventListener("input", () => { node.text = txt.value; schedulePlanSave(); });
     txt.addEventListener("keydown", (e) => onPlanKey(e, node, parent, txt));
+    // optional deadline (time of day) — shows on the Schedule column
+    const timeInput = el("input", { type: "time", className: "plan-time-input" + (node.time != null ? " has" : ""), title: "Set a deadline" });
+    if (node.time != null) timeInput.value = minToHM(node.time);
+    timeInput.addEventListener("keydown", (e) => e.stopPropagation());
+    timeInput.addEventListener("input", () => {
+      const v = timeInput.value;
+      if (v) { const [h, m] = v.split(":").map(Number); node.time = h * 60 + m; timeInput.classList.add("has"); }
+      else { node.time = undefined; timeInput.classList.remove("has"); }
+      schedulePlanSave(); renderSchedule();
+    });
     const del = el("button", { className: "plan-del", type: "button", title: "Delete", textContent: "✕" });
-    del.addEventListener("click", () => { removePlanNode(node, parent); schedulePlanSave(); renderPlanList(); updatePlanProgress(); });
-    row.append(cb, txt, del);
+    del.addEventListener("click", () => { removePlanNode(node, parent); schedulePlanSave(); renderPlanList(); updatePlanProgress(); renderSchedule(); });
+    row.append(cb, txt, timeInput, del);
     return row;
   }
 
@@ -1259,6 +1269,50 @@
     return `${h12}:${String(mm).padStart(2, "0")} ${ap}`;
   }
   function fmtHour(h) { const hh = h % 24; const ap = hh < 12 ? "AM" : "PM"; let h12 = hh % 12; if (h12 === 0) h12 = 12; return `${h12} ${ap}`; }
+  function minToHM(min) { return String(Math.floor(min / 60)).padStart(2, "0") + ":" + String(min % 60).padStart(2, "0"); }
+
+  // ---- Google Calendar "add event" link ------------------------------------
+  const GCAL_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M12 12.5v5M9.5 15h5"/></svg>';
+  function gcalUrl(title, dateStr, startMin, endMin) {
+    const pad2 = (n) => String(n).padStart(2, "0");
+    const stamp = (min) => {
+      let d = parseDate(dateStr), mm = Math.round(min);
+      while (mm >= 1440) { d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1); mm -= 1440; }
+      return `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}T${pad2(Math.floor(mm / 60))}${pad2(mm % 60)}00`;
+    };
+    let tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) {}
+    const p = new URLSearchParams({ action: "TEMPLATE", text: title || "(untitled)", dates: `${stamp(startMin)}/${stamp(endMin)}` });
+    if (tz) p.set("ctz", tz);
+    return "https://calendar.google.com/calendar/render?" + p.toString();
+  }
+  // getEvent() returns {title, start, end} in the CURRENT planDate, read at click
+  function gcalBtn(cls, getEvent) {
+    const b = el("button", { className: cls, type: "button", title: "Add to Google Calendar", "aria-label": "Add to Google Calendar" });
+    b.innerHTML = GCAL_SVG;
+    b.addEventListener("pointerdown", (e) => e.stopPropagation());
+    b.addEventListener("click", (e) => { e.stopPropagation(); const ev = getEvent(); window.open(gcalUrl(ev.title, planDate, ev.start, ev.end), "_blank", "noopener"); });
+    return b;
+  }
+
+  // ---- To-do deadlines shown on the schedule -------------------------------
+  function collectDeadlines() {
+    const out = [];
+    for (const it of planItems) { if (it.time != null) out.push(it); for (const s of (it.subs || [])) if (s.time != null) out.push(s); }
+    return out;
+  }
+  function buildDeadlineMarker(node) {
+    const m = el("div", { className: "dpp-deadline" + (node.done ? " done" : "") });
+    m.style.top = ((node.time - DAY_MIN0) / 60 * HOUR_PX + 4) + "px";
+    m.addEventListener("pointerdown", (e) => e.stopPropagation());
+    const cb = el("button", { className: "dpp-dl-check" + (node.done ? " checked" : ""), type: "button", title: node.done ? "Mark not done" : "Mark done" });
+    cb.addEventListener("pointerdown", (e) => e.stopPropagation());
+    cb.addEventListener("click", (e) => { e.stopPropagation(); node.done = !node.done; schedulePlanSave(); renderPlanList(); updatePlanProgress(); renderSchedule(); });
+    const text = el("span", { className: "dpp-dl-text", textContent: node.text || "Task" });
+    const time = el("span", { className: "dpp-dl-time", textContent: fmtMin(node.time) });
+    const g = gcalBtn("dpp-dl-gcal", () => ({ title: node.text || "Task", start: node.time, end: node.time + 30 }));
+    m.append(cb, text, time, g);
+    return m;
+  }
 
   function renderSchedule() {
     const host = $("#plan-schedule"); if (!host) return;
@@ -1277,6 +1331,7 @@
       if (nm >= DAY_MIN0 && nm <= DAY_MIN1) { const n = el("div", { className: "dpp-now" }); n.style.top = ((nm - DAY_MIN0) / 60 * HOUR_PX + 4) + "px"; grid.append(n); }
     }
     scheduleBlocks.forEach((b) => grid.append(buildSchedBlock(b, grid)));
+    collectDeadlines().forEach((node) => { if (node.time >= DAY_MIN0 && node.time <= DAY_MIN1) grid.append(buildDeadlineMarker(node)); });
 
     // click empty area to add a block
     grid.addEventListener("pointerdown", (e) => {
@@ -1317,8 +1372,9 @@
     const del = el("button", { className: "dpp-block-del", type: "button", title: "Delete block", textContent: "✕" });
     del.addEventListener("pointerdown", (e) => e.stopPropagation());
     del.addEventListener("click", () => { scheduleBlocks = scheduleBlocks.filter((x) => x !== b); saveSchedule(); renderSchedule(); });
+    const gcal = gcalBtn("dpp-block-gcal", () => ({ title: b.title || "Block", start: b.start, end: b.start + b.dur }));
     const resize = el("div", { className: "dpp-block-resize" });
-    box.append(title, time, del, resize);
+    box.append(title, time, del, gcal, resize);
     const setTime = () => { time.textContent = fmtMin(b.start) + " – " + fmtMin(b.start + b.dur); };
     schedDrag(box, b, "move", box, place, setTime);
     schedDrag(resize, b, "resize", box, place, setTime);
