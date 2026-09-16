@@ -1180,11 +1180,28 @@ code {
 .dpp-dl-gcal svg { width: 0.85rem; height: 0.85rem; }
 :root[data-theme="dark"] .dpp-dl-gcal { color: #f0a8a4; }
 
-/* deadline time control on a to-do row */
-.dpp .plan-time-input { display: none; flex: none; font: inherit; font-size: 0.74rem; color: var(--dpj-muted, var(--muted)); background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 0.08rem 0.3rem; }
-.dpp .plan-row:hover .plan-time-input, .dpp .plan-row:focus-within .plan-time-input, .dpp .plan-time-input.has { display: inline-flex; }
-.dpp .plan-time-input.has { color: var(--dpj-navy, var(--primary)); background: var(--primary-weak); border-color: color-mix(in srgb, var(--primary), transparent 70%); }
-:root[data-theme="dark"] .dpp .plan-time-input { color-scheme: dark; }
+/* custom deadline picker on a to-do row */
+.dpp .plan-time { position: relative; flex: none; }
+.dpp .plan-time-btn { display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; background: transparent; color: var(--dpj-faint, var(--muted)); cursor: pointer; border-radius: 7px; padding: 0.1rem 0.35rem; font: inherit; font-size: 0.74rem; line-height: 1.2; }
+.dpp .plan-time-btn svg { width: 1rem; height: 1rem; }
+.dpp .plan-row:not(:hover) .plan-time-btn:not(.set) { opacity: 0; pointer-events: none; }
+.dpp .plan-time-btn.set { color: var(--dpj-navy, var(--primary)); background: var(--primary-weak); border-color: color-mix(in srgb, var(--primary), transparent 70%); font-weight: 600; }
+.dpp .plan-time-btn:hover { color: var(--dpj-navy, var(--primary)); }
+.plan-time-pop { position: absolute; top: calc(100% + 5px); right: 0; z-index: 30; width: 208px; background: var(--surface); border: 1px solid var(--dpj-cardline, var(--edge)); border-radius: 14px; box-shadow: var(--sh-lg); padding: 0.75rem; font-family: "Plus Jakarta Sans", system-ui, sans-serif; }
+.ptp-title { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dpj-muted, var(--muted)); margin-bottom: 0.55rem; }
+.ptp-row { display: flex; gap: 0.3rem; margin-bottom: 0.5rem; }
+.ptp-ampm .ptp-seg, .ptp-mins .ptp-seg { flex: 1; }
+.ptp-seg { border: 1px solid var(--dpj-cardline, var(--edge)); background: var(--surface); color: var(--dpj-ink, var(--ink)); border-radius: 8px; padding: 0.3rem 0; font: inherit; font-size: 0.78rem; cursor: pointer; transition: border-color 0.1s ease; }
+.ptp-seg:hover { border-color: color-mix(in srgb, var(--primary), transparent 55%); }
+.ptp-seg.sel { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); }
+.ptp-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.25rem; margin-bottom: 0.5rem; }
+.ptp-cell { border: 1px solid var(--dpj-cardline, var(--edge)); background: var(--surface); color: var(--dpj-ink, var(--ink)); border-radius: 7px; padding: 0.26rem 0; font: inherit; font-size: 0.75rem; cursor: pointer; transition: border-color 0.1s ease; }
+.ptp-cell:hover { border-color: color-mix(in srgb, var(--primary), transparent 55%); }
+.ptp-cell.sel { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); }
+.ptp-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 0.15rem; }
+.ptp-clear { border: none; background: transparent; color: var(--dpj-muted, var(--muted)); cursor: pointer; font: inherit; font-size: 0.78rem; padding: 0.2rem 0.1rem; }
+.ptp-clear:hover { color: var(--danger, #ef4444); }
+.ptp-done { border: none; background: var(--primary); color: var(--primary-ink); border-radius: 8px; padding: 0.3rem 0.85rem; cursor: pointer; font: inherit; font-size: 0.78rem; font-weight: 600; }
 
 @media (max-width: 900px) {
   .dpp-wrap { grid-template-columns: minmax(0, 1fr); gap: 1.75rem; padding: 1.5rem 1.25rem 2.5rem; }
@@ -1462,7 +1479,8 @@ code {
 .topbar-left { flex: 1 1 0; min-width: 0; }
 .topbar-right { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem; }
 
-.brand-wave { width: 1.7rem; height: 1.7rem; flex: none; color: var(--primary); }
+.brand-wave { width: 1.4em; height: 1.4em; flex: none; color: inherit; }
+.lp-foot-brand .brand-wave { width: 1.25em; height: 1.25em; }
 .brand.small { font-size: 1.06rem; font-weight: 700; letter-spacing: -0.01em; color: var(--primary); gap: 0.55rem; }
 .brand.small .brand-name { color: var(--primary); }
 

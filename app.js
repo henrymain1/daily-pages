@@ -1056,7 +1056,6 @@
 
   function renderPlanner() {
     const isToday = planDate === todayStr();
-    $("#plan-daylabel").textContent = isToday ? "Today's plan" : DOW[parseDate(planDate).getDay()];
     $("#plan-date").textContent = longDate(planDate);
     $("#plan-today").hidden = isToday;
     $("#plan-focus").value = planFocus;
@@ -1104,6 +1103,56 @@
     list.append(buildPlanAddRow()); // faint trailing row = the empty state + a quick add
   }
 
+  // Custom deadline picker (matches the app UI, unlike the native time input).
+  function buildTimeControl(node) {
+    const wrap = el("div", { className: "plan-time" });
+    const CLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.6V12l3 1.8"/></svg>';
+    const btn = el("button", { className: "plan-time-btn", type: "button", title: "Set a deadline" });
+    const pop = el("div", { className: "plan-time-pop", hidden: true });
+    const renderBtn = () => { btn.classList.toggle("set", node.time != null); btn.innerHTML = node.time != null ? `<span>${fmtMin(node.time)}</span>` : CLOCK; };
+    const initState = () => {
+      if (node.time != null) { const h24 = Math.floor(node.time / 60); return { h: (h24 % 12) || 12, m: node.time % 60, ap: h24 < 12 ? "AM" : "PM" }; }
+      return { h: 9, m: 0, ap: "AM" };
+    };
+    let st = initState();
+    const highlight = () => {
+      const on = node.time != null;
+      pop.querySelectorAll(".ptp-ampm .ptp-seg").forEach((b) => b.classList.toggle("sel", on && b.dataset.ap === st.ap));
+      pop.querySelectorAll(".ptp-hours .ptp-cell").forEach((b) => b.classList.toggle("sel", on && +b.dataset.h === st.h));
+      pop.querySelectorAll(".ptp-mins .ptp-seg").forEach((b) => b.classList.toggle("sel", on && +b.dataset.m === st.m));
+    };
+    const commit = () => {
+      const h24 = st.ap === "PM" ? (st.h % 12) + 12 : (st.h % 12);
+      node.time = h24 * 60 + st.m;
+      renderBtn(); schedulePlanSave(); renderSchedule(); highlight();
+    };
+    const ampm = el("div", { className: "ptp-row ptp-ampm" });
+    ["AM", "PM"].forEach((a) => { const b = el("button", { className: "ptp-seg", type: "button", textContent: a }); b.dataset.ap = a; b.addEventListener("click", () => { st.ap = a; commit(); }); ampm.append(b); });
+    const hours = el("div", { className: "ptp-grid ptp-hours" });
+    for (let h = 1; h <= 12; h++) { const b = el("button", { className: "ptp-cell", type: "button", textContent: String(h) }); b.dataset.h = String(h); b.addEventListener("click", () => { st.h = h; commit(); }); hours.append(b); }
+    const mins = el("div", { className: "ptp-row ptp-mins" });
+    [0, 15, 30, 45].forEach((m) => { const b = el("button", { className: "ptp-seg", type: "button", textContent: ":" + String(m).padStart(2, "0") }); b.dataset.m = String(m); b.addEventListener("click", () => { st.m = m; commit(); }); mins.append(b); });
+    const foot = el("div", { className: "ptp-foot" });
+    const clear = el("button", { className: "ptp-clear", type: "button", textContent: "Clear" });
+    clear.addEventListener("click", () => { node.time = undefined; renderBtn(); schedulePlanSave(); renderSchedule(); pop.hidden = true; });
+    const done = el("button", { className: "ptp-done", type: "button", textContent: "Done" });
+    done.addEventListener("click", () => { pop.hidden = true; });
+    foot.append(clear, done);
+    pop.append(el("div", { className: "ptp-title", textContent: "Deadline" }), ampm, hours, mins, foot);
+    btn.addEventListener("pointerdown", (e) => e.stopPropagation());
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const willOpen = pop.hidden;
+      document.querySelectorAll(".plan-time-pop").forEach((p) => { if (p !== pop) p.hidden = true; });
+      pop.hidden = !willOpen;
+      if (!pop.hidden) { st = initState(); highlight(); }
+    });
+    pop.addEventListener("pointerdown", (e) => e.stopPropagation());
+    renderBtn();
+    wrap.append(btn, pop);
+    return wrap;
+  }
+
   function buildPlanRow(node, parent) {
     const isSub = !!parent;
     const row = el("div", { className: "plan-row" + (isSub ? " is-sub" : "") + (node.done ? " done" : "") });
@@ -1113,19 +1162,11 @@
     txt.dataset.id = node.id;
     txt.addEventListener("input", () => { node.text = txt.value; schedulePlanSave(); });
     txt.addEventListener("keydown", (e) => onPlanKey(e, node, parent, txt));
-    // optional deadline (time of day) — shows on the Schedule column
-    const timeInput = el("input", { type: "time", className: "plan-time-input" + (node.time != null ? " has" : ""), title: "Set a deadline" });
-    if (node.time != null) timeInput.value = minToHM(node.time);
-    timeInput.addEventListener("keydown", (e) => e.stopPropagation());
-    timeInput.addEventListener("input", () => {
-      const v = timeInput.value;
-      if (v) { const [h, m] = v.split(":").map(Number); node.time = h * 60 + m; timeInput.classList.add("has"); }
-      else { node.time = undefined; timeInput.classList.remove("has"); }
-      schedulePlanSave(); renderSchedule();
-    });
+    // optional deadline (time of day) — custom picker; shows on the Schedule column
+    const timeCtrl = buildTimeControl(node);
     const del = el("button", { className: "plan-del", type: "button", title: "Delete", textContent: "✕" });
     del.addEventListener("click", () => { removePlanNode(node, parent); schedulePlanSave(); renderPlanList(); updatePlanProgress(); renderSchedule(); });
-    row.append(cb, txt, timeInput, del);
+    row.append(cb, txt, timeCtrl, del);
     return row;
   }
 
@@ -1832,6 +1873,7 @@
     document.addEventListener("click", (e) => {
       const dd = $("#user-dropdown"), ab = $("#user-avatar-btn");
       if (dd && !dd.hidden && !dd.contains(e.target) && ab && !ab.contains(e.target)) closeUserMenu();
+      if (!e.target.closest(".plan-time")) $$(".plan-time-pop").forEach((p) => { if (!p.hidden) p.hidden = true; });
     });
 
     // weekly reflection popup
