@@ -228,6 +228,7 @@
               <button id="insights-btn" class="menu-item" type="button" role="menuitem"><span class="ic ic-chart" aria-hidden="true"></span> Insights &amp; review</button>
               <button id="reader-btn" class="menu-item" type="button" role="menuitem"><span class="ic ic-book" aria-hidden="true"></span> Browse all entries</button>
               <button id="export-btn" class="menu-item" type="button" role="menuitem"><span class="ic ic-download" aria-hidden="true"></span> Export as Markdown</button>
+              <button id="gcal-btn" class="menu-item" type="button" role="menuitem" hidden><svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="2.5"></rect><path d="M3 9.5h18M8 2.5v4M16 2.5v4"></path></svg> <span id="gcal-btn-label">Connect Google Calendar</span></button>
               <button id="theme-toggle" class="menu-item" type="button" role="menuitem"><span class="ic ic-theme" aria-hidden="true"></span> Light / dark</button>
               <div class="menu-sep" aria-hidden="true"></div>
               <button id="logout-btn" class="menu-item" type="button" role="menuitem">Log out</button>
@@ -411,7 +412,13 @@
         <aside class="dpp-side">
           <div class="dpp-sec-head">
             <span class="dpj-h">Schedule</span>
-            <span class="dpp-sched-hint">Click to add · drag the edge to resize</span>
+            <span class="dpp-sched-right">
+              <button id="sched-sync" class="dpp-sync" type="button" title="Sync with Google Calendar" hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11A8 8 0 0 0 6 6.3L4 8"></path><path d="M4 4v4h4"></path><path d="M4 13a8 8 0 0 0 14 4.7l2-1.7"></path><path d="M20 20v-4h-4"></path></svg>
+                <span>Sync</span>
+              </button>
+              <span class="dpp-sched-hint">Click to add · drag to resize</span>
+            </span>
           </div>
           <div id="plan-schedule" class="dpp-sched"></div>
         </aside>

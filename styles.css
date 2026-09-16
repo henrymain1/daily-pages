@@ -1180,6 +1180,18 @@ code {
 .dpp-dl-gcal svg { width: 0.85rem; height: 0.85rem; }
 :root[data-theme="dark"] .dpp-dl-gcal { color: #f0a8a4; }
 
+/* Google Calendar: menu icon, schedule sync button, read-only event overlays */
+.menu-item .menu-ic { width: 1.05rem; height: 1.05rem; opacity: 0.8; flex: none; }
+.dpp-sched-right { display: inline-flex; align-items: center; gap: 0.6rem; }
+.dpp-sync { display: inline-flex; align-items: center; gap: 0.3rem; border: 1px solid var(--dpj-cardline, var(--edge)); background: var(--surface); color: var(--dpj-muted, var(--muted)); border-radius: 999px; padding: 0.2rem 0.6rem; font: inherit; font-size: 0.72rem; font-weight: 600; cursor: pointer; }
+.dpp-sync:hover { color: var(--dpj-navy, var(--primary)); border-color: color-mix(in srgb, var(--primary), transparent 60%); }
+.dpp-sync svg { width: 0.85rem; height: 0.85rem; }
+.dpp-sync.syncing svg { animation: dp-spin 0.8s linear infinite; }
+.dpp-gevent { position: absolute; left: 3.5rem; right: 0.75rem; border-radius: 8px; padding: 0.18rem 0.5rem; overflow: hidden; pointer-events: none; color: #2b5fb0; border: 1px dashed color-mix(in srgb, #4d8bf0, transparent 45%); background: repeating-linear-gradient(45deg, color-mix(in srgb, #4d8bf0, transparent 90%) 0 6px, color-mix(in srgb, #4d8bf0, transparent 95%) 6px 12px); }
+:root[data-theme="dark"] .dpp-gevent { color: #9dc0ef; border-color: color-mix(in srgb, #4d8bf0, transparent 40%); background: repeating-linear-gradient(45deg, color-mix(in srgb, #4d8bf0, transparent 84%) 0 6px, color-mix(in srgb, #4d8bf0, transparent 90%) 6px 12px); }
+.dpp-gevent-title { display: block; font-size: 0.72rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dpp-gevent-time { display: block; font-size: 0.62rem; opacity: 0.85; }
+
 /* custom deadline picker on a to-do row */
 .dpp .plan-time { position: relative; flex: none; }
 .dpp .plan-time-btn { display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; background: transparent; color: var(--dpj-faint, var(--muted)); cursor: pointer; border-radius: 7px; padding: 0.1rem 0.35rem; font: inherit; font-size: 0.74rem; line-height: 1.2; }

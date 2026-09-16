@@ -13,6 +13,12 @@
     !cfg.SUPABASE_URL.includes("YOUR_") &&
     !cfg.SUPABASE_ANON_KEY.includes("YOUR_");
 
+  // ---- Google Calendar sync (off unless a function URL is configured) -------
+  const GCAL_URL = cfg.GCAL_FUNCTION_URL || "";
+  const gcalOn = !!GCAL_URL;
+  let gcalConnected = false;
+  let gcalEvents = []; // Google events pulled for the current planner day
+
   // ---- Tiny DOM helpers -----------------------------------------------------
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -1023,6 +1029,7 @@
     planDate = todayStr();
     applyPlanForDate();
     renderPlanner();
+    maybeGcalPull();
   }
 
   async function loadAllPlans() {
@@ -1069,8 +1076,10 @@
   async function goToPlanDate(dateStr) {
     if (planDirty) { setPlanLoading(true); await savePlanNow(); setPlanLoading(false); }
     planDate = dateStr;
+    gcalEvents = [];        // clear the old day's Google events until the new pull lands
     applyPlanForDate();     // instant — read from the in-memory map
     renderPlanner();
+    maybeGcalPull();
   }
 
   // ---- To-do: a keyboard outliner (Enter / Tab / Shift+Tab) -----------------
@@ -1125,6 +1134,7 @@
       const h24 = st.ap === "PM" ? (st.h % 12) + 12 : (st.h % 12);
       node.time = h24 * 60 + st.m;
       renderBtn(); schedulePlanSave(); renderSchedule(); highlight();
+      gcalPushDeadline(node);
     };
     const ampm = el("div", { className: "ptp-row ptp-ampm" });
     ["AM", "PM"].forEach((a) => { const b = el("button", { className: "ptp-seg", type: "button", textContent: a }); b.dataset.ap = a; b.addEventListener("click", () => { st.ap = a; commit(); }); ampm.append(b); });
@@ -1134,7 +1144,7 @@
     [0, 15, 30, 45].forEach((m) => { const b = el("button", { className: "ptp-seg", type: "button", textContent: ":" + String(m).padStart(2, "0") }); b.dataset.m = String(m); b.addEventListener("click", () => { st.m = m; commit(); }); mins.append(b); });
     const foot = el("div", { className: "ptp-foot" });
     const clear = el("button", { className: "ptp-clear", type: "button", textContent: "Clear" });
-    clear.addEventListener("click", () => { node.time = undefined; renderBtn(); schedulePlanSave(); renderSchedule(); pop.hidden = true; });
+    clear.addEventListener("click", () => { gcalUnpushNode(node); node.time = undefined; renderBtn(); schedulePlanSave(); renderSchedule(); pop.hidden = true; });
     const done = el("button", { className: "ptp-done", type: "button", textContent: "Done" });
     done.addEventListener("click", () => { pop.hidden = true; });
     foot.append(clear, done);
@@ -1165,7 +1175,7 @@
     // optional deadline (time of day) — custom picker; shows on the Schedule column
     const timeCtrl = buildTimeControl(node);
     const del = el("button", { className: "plan-del", type: "button", title: "Delete", textContent: "✕" });
-    del.addEventListener("click", () => { removePlanNode(node, parent); schedulePlanSave(); renderPlanList(); updatePlanProgress(); renderSchedule(); });
+    del.addEventListener("click", () => { gcalUnpushNode(node); removePlanNode(node, parent); schedulePlanSave(); renderPlanList(); updatePlanProgress(); renderSchedule(); });
     row.append(cb, txt, timeCtrl, del);
     return row;
   }
@@ -1219,8 +1229,9 @@
       e.preventDefault();
       const order = planRowOrder(); const idx = order.indexOf(node.id);
       const target = idx > 0 ? order[idx - 1] : null;
+      gcalUnpushNode(node);
       removePlanNode(node, parent);
-      schedulePlanSave(); renderPlanList(); updatePlanProgress();
+      schedulePlanSave(); renderPlanList(); updatePlanProgress(); renderSchedule();
       if (target) focusPlanRow(target, true);
     }
   }
@@ -1237,8 +1248,8 @@
   function cleanPlanItems() {
     return planItems
       .map((it) => ({
-        id: it.id, text: it.text, done: !!it.done, time: it.time,
-        subs: (it.subs || []).filter((s) => (s.text || "").trim()).map((s) => ({ id: s.id, text: s.text, done: !!s.done, time: s.time })),
+        id: it.id, text: it.text, done: !!it.done, time: it.time, gcalEventId: it.gcalEventId,
+        subs: (it.subs || []).filter((s) => (s.text || "").trim()).map((s) => ({ id: s.id, text: s.text, done: !!s.done, time: s.time, gcalEventId: s.gcalEventId })),
       }))
       .filter((it) => (it.text || "").trim() || it.subs.length);
   }
@@ -1371,6 +1382,7 @@
       const now = new Date(); const nm = now.getHours() * 60 + now.getMinutes();
       if (nm >= DAY_MIN0 && nm <= DAY_MIN1) { const n = el("div", { className: "dpp-now" }); n.style.top = ((nm - DAY_MIN0) / 60 * HOUR_PX + 4) + "px"; grid.append(n); }
     }
+    gcalEvents.forEach((ev) => { if (!ev.allDay) { const g = buildGEvent(ev); if (g) grid.append(g); } });
     scheduleBlocks.forEach((b) => grid.append(buildSchedBlock(b, grid)));
     collectDeadlines().forEach((node) => { if (node.time >= DAY_MIN0 && node.time <= DAY_MIN1) grid.append(buildDeadlineMarker(node)); });
 
@@ -1764,6 +1776,7 @@
     else $("#compose-input").focus();
 
     checkWeeklySummary(); // fire-and-forget; pops up when a new week's reflection is ready
+    gcalInit();           // fire-and-forget; Google Calendar status + pull if connected
   }
 
   function showLanding() {
@@ -1788,6 +1801,82 @@
     $("#auth-view").hidden = false;
     setAuthMode(mode || "login");
     const em = $("#email"); if (em) em.focus();
+  }
+
+  // ---- Google Calendar sync -------------------------------------------------
+  async function gcalCall(action, params = {}) {
+    if (!gcalOn) return null;
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) return null;
+      const r = await fetch(GCAL_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token },
+        body: JSON.stringify({ action, ...params }),
+      });
+      return await r.json();
+    } catch (e) { return { error: String(e) }; }
+  }
+  function gcalRefreshUI() {
+    const b = $("#gcal-btn"); if (b) b.hidden = !gcalOn;
+    const lbl = $("#gcal-btn-label"); if (lbl) lbl.textContent = gcalConnected ? "Google Calendar · Disconnect" : "Connect Google Calendar";
+    const sync = $("#sched-sync"); if (sync) sync.hidden = !(gcalOn && gcalConnected);
+  }
+  async function gcalInit() {
+    if (!gcalOn) { gcalRefreshUI(); return; }
+    if (location.hash.indexOf("gcal=connected") >= 0) { gcalConnected = true; toast("Google Calendar connected."); history.replaceState(null, "", location.pathname + location.search); }
+    else if (location.hash.indexOf("gcal=error") >= 0) { toast("Couldn't connect Google Calendar — please try again."); history.replaceState(null, "", location.pathname + location.search); }
+    const res = await gcalCall("status");
+    gcalConnected = !!(res && res.connected);
+    gcalRefreshUI();
+    if (gcalConnected && currentView === "planner") gcalPull();
+  }
+  async function gcalConnectToggle() {
+    if (!gcalOn) return;
+    if (gcalConnected) {
+      if (!confirm("Disconnect Google Calendar? Your Daily Pages data stays; it just stops syncing.")) return;
+      await gcalCall("disconnect"); gcalConnected = false; gcalEvents = []; gcalRefreshUI(); if (currentView === "planner") renderSchedule(); toast("Disconnected from Google Calendar.");
+    } else {
+      const res = await gcalCall("authurl", { returnUrl: location.href.split("#")[0] });
+      if (res && res.url) location.href = res.url; else toast("Couldn't start the Google connection.");
+    }
+  }
+  function maybeGcalPull() { if (gcalOn && gcalConnected && currentView === "planner") gcalPull(); }
+  async function gcalPull() {
+    if (!gcalOn || !gcalConnected) return;
+    const d = parseDate(planDate);
+    const timeMin = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0).toISOString();
+    const timeMax = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 0).toISOString();
+    const sync = $("#sched-sync"); if (sync) sync.classList.add("syncing");
+    const res = await gcalCall("pull", { timeMin, timeMax });
+    if (sync) sync.classList.remove("syncing");
+    if (res && Array.isArray(res.events)) { gcalEvents = res.events; renderSchedule(); }
+  }
+  function gcalUnpushNode(node) {
+    if (gcalOn && gcalConnected && node && node.gcalEventId) { gcalCall("unpush", { eventId: node.gcalEventId }); node.gcalEventId = undefined; }
+  }
+  // debounced push of a to-do deadline as a Google event (with a reminder)
+  const gcalPushTimers = {};
+  function gcalPushDeadline(node) {
+    if (!gcalOn || !gcalConnected || node.time == null) return;
+    clearTimeout(gcalPushTimers[node.id]);
+    gcalPushTimers[node.id] = setTimeout(async () => {
+      const tz = (function () { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { return "UTC"; } })();
+      const res = await gcalCall("push", { itemId: node.id, title: node.text || "(task)", dateStr: planDate, startMin: node.time, durMin: 30, reminderMin: 0, tz, eventId: node.gcalEventId });
+      if (res && res.eventId && res.eventId !== node.gcalEventId) { node.gcalEventId = res.eventId; schedulePlanSave(); }
+    }, 900);
+  }
+  function hmToMin(iso) { if (!iso) return null; const d = new Date(iso); if (isNaN(d)) return null; return d.getHours() * 60 + d.getMinutes(); }
+  function buildGEvent(ev) {
+    const s = hmToMin(ev.start); if (s == null || s < DAY_MIN0 || s > DAY_MIN1) return null;
+    let e = hmToMin(ev.end); if (e == null || e <= s) e = s + 30;
+    const box = el("div", { className: "dpp-gevent" });
+    box.style.top = ((s - DAY_MIN0) / 60 * HOUR_PX + 4) + "px";
+    box.style.height = ((e - s) / 60 * HOUR_PX) + "px";
+    box.title = ev.title + " · Google Calendar";
+    box.append(el("span", { className: "dpp-gevent-title", textContent: ev.title }));
+    box.append(el("span", { className: "dpp-gevent-time", textContent: fmtMin(s) + " – " + fmtMin(e) }));
+    return box;
   }
 
   // ---- Wire up events -------------------------------------------------------
@@ -1862,6 +1951,9 @@
 
     // settings (skin switcher entry point removed from the menu for now; modal code kept)
     { const sb = $("#settings-btn"); if (sb) sb.addEventListener("click", openSettings); }
+    // Google Calendar
+    { const g = $("#gcal-btn"); if (g) g.addEventListener("click", gcalConnectToggle); }
+    { const s = $("#sched-sync"); if (s) s.addEventListener("click", gcalPull); }
     $("#settings-close").addEventListener("click", closeSettings);
     $("#settings-view").addEventListener("click", (e) => { if (e.target === $("#settings-view")) closeSettings(); });
     $$(".skin-option").forEach((b) => b.addEventListener("click", () => applySkin(b.dataset.skin)));

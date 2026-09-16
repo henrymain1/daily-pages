@@ -28,4 +28,10 @@ window.JOURNAL_CONFIG = {
   // Google) — otherwise the button just shows a gentle "not set up yet" note.
   // Flip to true after setup and the button will sign in with Google.
   GOOGLE_ENABLED: false,
+
+  // Google Calendar sync. Leave empty to keep it off (the Connect option is
+  // hidden and nothing calls Google). After you deploy the `gcal` Edge
+  // Function (see GCAL_SETUP.md), paste its URL here, e.g.:
+  //   https://dzorirqyxjrgascpptea.supabase.co/functions/v1/gcal
+  GCAL_FUNCTION_URL: "",
 };
