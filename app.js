@@ -1074,66 +1074,122 @@
     renderPlanner();
   }
 
-  function renderPlanList() {
-    const list = $("#plan-list"); list.innerHTML = "";
-    if (planItems.length === 0) {
-      list.append(el("div", { className: "plan-empty", textContent: "No tasks yet — add your first one below." }));
-      return;
-    }
-    for (const it of planItems) {
-      if (!Array.isArray(it.subs)) it.subs = [];
-      const group = el("div", { className: "plan-task-group" });
-
-      const row = el("div", { className: "plan-item" + (it.done ? " done" : "") });
-      const cb = el("button", { className: "plan-check" + (it.done ? " checked" : ""), type: "button", title: it.done ? "Mark not done" : "Mark done" });
-      cb.addEventListener("click", () => { it.done = !it.done; schedulePlanSave(); renderPlanList(); updatePlanProgress(); });
-      const txt = el("input", { className: "plan-text", value: it.text, placeholder: "Task…" });
-      txt.addEventListener("input", () => { it.text = txt.value; schedulePlanSave(); });
-      const addSub = el("button", { className: "plan-subadd-btn", type: "button", title: "Add subtask", textContent: "＋" });
-      addSub.addEventListener("click", () => { it.subs.push({ id: uid(), text: "", done: false }); schedulePlanSave(); renderPlanList(); focusSub(it.id, it.subs.length - 1); });
-      const del = el("button", { className: "plan-del", type: "button", title: "Delete task", textContent: "✕" });
-      del.addEventListener("click", () => { planItems = planItems.filter((x) => x !== it); schedulePlanSave(); renderPlanList(); updatePlanProgress(); });
-      row.append(cb, txt, addSub, del);
-      group.append(row);
-
-      if (it.subs.length) {
-        const subWrap = el("div", { className: "plan-subs" });
-        it.subs.forEach((s, si) => {
-          const srow = el("div", { className: "plan-sub" + (s.done ? " done" : "") });
-          const scb = el("button", { className: "plan-check sub" + (s.done ? " checked" : ""), type: "button", title: s.done ? "Mark not done" : "Mark done" });
-          scb.addEventListener("click", () => { s.done = !s.done; schedulePlanSave(); renderPlanList(); });
-          const stxt = el("input", { className: "plan-text sub", value: s.text, placeholder: "Subtask…" });
-          stxt.dataset.parent = it.id; stxt.dataset.idx = String(si);
-          stxt.addEventListener("input", () => { s.text = stxt.value; schedulePlanSave(); });
-          const sdel = el("button", { className: "plan-del", type: "button", title: "Delete subtask", textContent: "✕" });
-          sdel.addEventListener("click", () => { it.subs = it.subs.filter((x) => x !== s); schedulePlanSave(); renderPlanList(); });
-          srow.append(scb, stxt, sdel);
-          subWrap.append(srow);
-        });
-        group.append(subWrap);
-      }
-      list.append(group);
-    }
+  // ---- To-do: a keyboard outliner (Enter / Tab / Shift+Tab) -----------------
+  function newPlanNode() { return { id: uid(), text: "", done: false, subs: [] }; }
+  function focusPlanRow(id, atEnd) {
+    const n = document.querySelector(`#plan-list .plan-text[data-id="${id}"]`);
+    if (!n) return;
+    n.focus();
+    if (atEnd) { const p = n.value.length; try { n.setSelectionRange(p, p); } catch (e) {} }
+  }
+  // visible row order (for Backspace-to-merge focus)
+  function planRowOrder() {
+    const ids = [];
+    for (const it of planItems) { ids.push(it.id); for (const s of (it.subs || [])) ids.push(s.id); }
+    return ids;
+  }
+  function removePlanNode(node, parent) {
+    if (parent) parent.subs = parent.subs.filter((x) => x !== node);
+    else planItems = planItems.filter((x) => x !== node);
   }
 
-  function focusSub(parentId, idx) {
-    const node = document.querySelector(`.plan-text.sub[data-parent="${parentId}"][data-idx="${idx}"]`);
-    if (node) node.focus();
+  function renderPlanList() {
+    const list = $("#plan-list"); if (!list) return;
+    list.innerHTML = "";
+    planItems.forEach((it) => {
+      if (!Array.isArray(it.subs)) it.subs = [];
+      list.append(buildPlanRow(it, null));
+      it.subs.forEach((s) => list.append(buildPlanRow(s, it)));
+    });
+    list.append(buildPlanAddRow()); // faint trailing row = the empty state + a quick add
+  }
+
+  function buildPlanRow(node, parent) {
+    const isSub = !!parent;
+    const row = el("div", { className: "plan-row" + (isSub ? " is-sub" : "") + (node.done ? " done" : "") });
+    const cb = el("button", { className: "plan-check" + (node.done ? " checked" : ""), type: "button", title: node.done ? "Mark not done" : "Mark done" });
+    cb.addEventListener("click", () => { node.done = !node.done; schedulePlanSave(); renderPlanList(); updatePlanProgress(); focusPlanRow(node.id, true); });
+    const txt = el("input", { className: "plan-text", value: node.text, placeholder: isSub ? "Subtask…" : "Task…" });
+    txt.dataset.id = node.id;
+    txt.addEventListener("input", () => { node.text = txt.value; schedulePlanSave(); });
+    txt.addEventListener("keydown", (e) => onPlanKey(e, node, parent, txt));
+    const del = el("button", { className: "plan-del", type: "button", title: "Delete", textContent: "✕" });
+    del.addEventListener("click", () => { removePlanNode(node, parent); schedulePlanSave(); renderPlanList(); updatePlanProgress(); });
+    row.append(cb, txt, del);
+    return row;
+  }
+
+  function buildPlanAddRow() {
+    const row = el("div", { className: "plan-row plan-add-row" });
+    const cb = el("button", { className: "plan-check", type: "button", tabIndex: -1, disabled: true, "aria-hidden": "true" });
+    const txt = el("input", { className: "plan-text", placeholder: planItems.length ? "Add a task…" : "Add your first task…" });
+    const promote = (viaEnter) => {
+      const node = newPlanNode(); node.text = txt.value;
+      planItems.push(node);
+      schedulePlanSave(); updatePlanProgress(); renderPlanList();
+      focusPlanRow(node.id, !viaEnter);
+    };
+    txt.addEventListener("input", () => promote(false));
+    txt.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); promote(true); } });
+    row.append(cb, txt);
+    return row;
+  }
+
+  function onPlanKey(e, node, parent, txt) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const fresh = newPlanNode();
+      if (parent) { const j = parent.subs.indexOf(node); parent.subs.splice(j + 1, 0, { id: fresh.id, text: "", done: false }); }
+      else { const i = planItems.indexOf(node); planItems.splice(i + 1, 0, fresh); }
+      schedulePlanSave(); renderPlanList(); updatePlanProgress(); focusPlanRow(fresh.id, false);
+    } else if (e.key === "Tab" && !e.shiftKey) {
+      e.preventDefault();
+      if (!parent) { // demote a top-level task into a subtask of the item above
+        const i = planItems.indexOf(node);
+        if (i > 0) {
+          const prev = planItems[i - 1]; prev.subs = prev.subs || [];
+          const moved = { id: node.id, text: node.text, done: node.done, time: node.time };
+          // one level of nesting only — flatten any subs of the demoted item up into prev
+          prev.subs.push(moved, ...((node.subs || []).map((s) => ({ id: s.id, text: s.text, done: s.done, time: s.time }))));
+          planItems.splice(i, 1);
+          schedulePlanSave(); renderPlanList(); updatePlanProgress(); focusPlanRow(moved.id, true);
+        }
+      }
+    } else if (e.key === "Tab" && e.shiftKey) {
+      e.preventDefault();
+      if (parent) { // promote a subtask to a task right below its parent
+        const p = planItems.indexOf(parent), j = parent.subs.indexOf(node);
+        parent.subs.splice(j, 1);
+        const promoted = { id: node.id, text: node.text, done: node.done, time: node.time, subs: [] };
+        planItems.splice(p + 1, 0, promoted);
+        schedulePlanSave(); renderPlanList(); updatePlanProgress(); focusPlanRow(promoted.id, true);
+      }
+    } else if (e.key === "Backspace" && txt.value === "" && txt.selectionStart === 0) {
+      e.preventDefault();
+      const order = planRowOrder(); const idx = order.indexOf(node.id);
+      const target = idx > 0 ? order[idx - 1] : null;
+      removePlanNode(node, parent);
+      schedulePlanSave(); renderPlanList(); updatePlanProgress();
+      if (target) focusPlanRow(target, true);
+    }
   }
 
   function updatePlanProgress() {
-    const total = planItems.length;
-    const done = planItems.filter((i) => i.done).length;
-    const p = $("#plan-progress");
+    let total = 0, done = 0;
+    for (const it of planItems) { total++; if (it.done) done++; for (const s of (it.subs || [])) { total++; if (s.done) done++; } }
+    const p = $("#plan-progress"); if (!p) return;
     p.hidden = total === 0;
     p.textContent = total ? `${done} / ${total} done` : "";
   }
 
-  function addTask(text) {
-    text = (text || "").trim();
-    if (!text) return;
-    planItems.push({ id: uid(), text, done: false });
-    schedulePlanSave(); renderPlanList(); updatePlanProgress();
+  // Drop empty rows before persisting so blank placeholders don't pile up.
+  function cleanPlanItems() {
+    return planItems
+      .map((it) => ({
+        id: it.id, text: it.text, done: !!it.done, time: it.time,
+        subs: (it.subs || []).filter((s) => (s.text || "").trim()).map((s) => ({ id: s.id, text: s.text, done: !!s.done, time: s.time })),
+      }))
+      .filter((it) => (it.text || "").trim() || it.subs.length);
   }
 
   function setPlanStatus(text, saved) {
@@ -1151,7 +1207,8 @@
     if (!currentUser || !plansLoaded) { planDirty = false; return; }
     const focus = $("#plan-focus") ? $("#plan-focus").value : planFocus;
     planFocus = focus;
-    const empty = !focus.trim() && planItems.length === 0;
+    const items = cleanPlanItems();
+    const empty = !focus.trim() && items.length === 0;
     const existing = plansByDate.get(planDate);
     if (empty) {
       planDirty = false;
@@ -1159,7 +1216,7 @@
       setPlanStatus("");
       return;
     }
-    const row = { user_id: currentUser.id, plan_date: planDate, focus, items: planItems, updated_at: new Date().toISOString() };
+    const row = { user_id: currentUser.id, plan_date: planDate, focus, items, updated_at: new Date().toISOString() };
     const { data, error } = await sb.from("plans").upsert(row, { onConflict: "user_id,plan_date" }).select().single();
     if (error) { setPlanStatus("Save failed", false); toast("Plan save failed: " + error.message); return; }
     plansByDate.set(planDate, data);
@@ -1733,7 +1790,6 @@
     window.addEventListener("resize", () => { clearTimeout(listsResizeT); listsResizeT = setTimeout(onListsResize, 200); });
     // planner
     $("#plan-focus").addEventListener("input", () => { planFocus = $("#plan-focus").value; schedulePlanSave(); });
-    $("#plan-add-form").addEventListener("submit", (e) => { e.preventDefault(); const inp = $("#plan-add-input"); addTask(inp.value); inp.value = ""; inp.focus(); });
     $("#plan-prev").addEventListener("click", () => goToPlanDate(addDays(planDate, -1)));
     $("#plan-next").addEventListener("click", () => goToPlanDate(addDays(planDate, 1)));
     $("#plan-today").addEventListener("click", () => goToPlanDate(todayStr()));
