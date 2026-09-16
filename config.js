@@ -33,5 +33,5 @@ window.JOURNAL_CONFIG = {
   // hidden and nothing calls Google). After you deploy the `gcal` Edge
   // Function (see GCAL_SETUP.md), paste its URL here, e.g.:
   //   https://dzorirqyxjrgascpptea.supabase.co/functions/v1/gcal
-  GCAL_FUNCTION_URL: "",
+  GCAL_FUNCTION_URL: "https://dzorirqyxjrgascpptea.supabase.co/functions/v1/gcal",
 };
