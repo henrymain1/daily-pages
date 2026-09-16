@@ -1818,8 +1818,9 @@
     } catch (e) { return { error: String(e) }; }
   }
   function gcalRefreshUI() {
-    const b = $("#gcal-btn"); if (b) b.hidden = !gcalOn;
-    const lbl = $("#gcal-btn-label"); if (lbl) lbl.textContent = gcalConnected ? "Google Calendar · Disconnect" : "Connect Google Calendar";
+    const bar = $("#gcal-bar"); if (bar) bar.hidden = !gcalOn;
+    const btn = $("#gcal-connect"); if (btn) btn.classList.toggle("is-connected", gcalConnected);
+    const lbl = $("#gcal-connect-label"); if (lbl) lbl.textContent = gcalConnected ? "Google Calendar connected · Disconnect" : "Connect Google Calendar";
     const sync = $("#sched-sync"); if (sync) sync.hidden = !(gcalOn && gcalConnected);
   }
   async function gcalInit() {
@@ -1952,7 +1953,7 @@
     // settings (skin switcher entry point removed from the menu for now; modal code kept)
     { const sb = $("#settings-btn"); if (sb) sb.addEventListener("click", openSettings); }
     // Google Calendar
-    { const g = $("#gcal-btn"); if (g) g.addEventListener("click", gcalConnectToggle); }
+    { const g = $("#gcal-connect"); if (g) g.addEventListener("click", gcalConnectToggle); }
     { const s = $("#sched-sync"); if (s) s.addEventListener("click", gcalPull); }
     $("#settings-close").addEventListener("click", closeSettings);
     $("#settings-view").addEventListener("click", (e) => { if (e.target === $("#settings-view")) closeSettings(); });

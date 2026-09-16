@@ -228,7 +228,6 @@
               <button id="insights-btn" class="menu-item" type="button" role="menuitem"><span class="ic ic-chart" aria-hidden="true"></span> Insights &amp; review</button>
               <button id="reader-btn" class="menu-item" type="button" role="menuitem"><span class="ic ic-book" aria-hidden="true"></span> Browse all entries</button>
               <button id="export-btn" class="menu-item" type="button" role="menuitem"><span class="ic ic-download" aria-hidden="true"></span> Export as Markdown</button>
-              <button id="gcal-btn" class="menu-item" type="button" role="menuitem" hidden><svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="2.5"></rect><path d="M3 9.5h18M8 2.5v4M16 2.5v4"></path></svg> <span id="gcal-btn-label">Connect Google Calendar</span></button>
               <button id="theme-toggle" class="menu-item" type="button" role="menuitem"><span class="ic ic-theme" aria-hidden="true"></span> Light / dark</button>
               <div class="menu-sep" aria-hidden="true"></div>
               <button id="logout-btn" class="menu-item" type="button" role="menuitem">Log out</button>
@@ -421,6 +420,12 @@
             </span>
           </div>
           <div id="plan-schedule" class="dpp-sched"></div>
+          <div id="gcal-bar" class="dpp-gcal-bar" hidden>
+            <button id="gcal-connect" class="dpp-gcal-connect" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="2.5"></rect><path d="M3 9.5h18M8 2.5v4M16 2.5v4"></path></svg>
+              <span id="gcal-connect-label">Connect Google Calendar</span>
+            </button>
+          </div>
         </aside>
       </div>
     </main>

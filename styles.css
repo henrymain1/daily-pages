@@ -1187,6 +1187,12 @@ code {
 .dpp-sync:hover { color: var(--dpj-navy, var(--primary)); border-color: color-mix(in srgb, var(--primary), transparent 60%); }
 .dpp-sync svg { width: 0.85rem; height: 0.85rem; }
 .dpp-sync.syncing svg { animation: dp-spin 0.8s linear infinite; }
+.dpp-gcal-bar { margin-top: 0.9rem; display: flex; justify-content: center; }
+.dpp-gcal-connect { display: inline-flex; align-items: center; gap: 0.5rem; border: 1px solid var(--dpj-cardline, var(--edge)); background: var(--surface); color: var(--dpj-navy, var(--primary)); border-radius: 999px; padding: 0.5rem 1rem; font: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.dpp-gcal-connect:hover { border-color: color-mix(in srgb, var(--primary), transparent 55%); background: color-mix(in srgb, var(--primary), transparent 94%); }
+.dpp-gcal-connect svg { width: 1rem; height: 1rem; }
+.dpp-gcal-connect.is-connected { color: var(--dpj-muted, var(--muted)); font-weight: 500; }
+.dpp-gcal-connect.is-connected svg { color: #3aa76d; }
 .dpp-gevent { position: absolute; left: 3.5rem; right: 0.75rem; border-radius: 8px; padding: 0.18rem 0.5rem; overflow: hidden; pointer-events: none; color: #2b5fb0; border: 1px dashed color-mix(in srgb, #4d8bf0, transparent 45%); background: repeating-linear-gradient(45deg, color-mix(in srgb, #4d8bf0, transparent 90%) 0 6px, color-mix(in srgb, #4d8bf0, transparent 95%) 6px 12px); }
 :root[data-theme="dark"] .dpp-gevent { color: #9dc0ef; border-color: color-mix(in srgb, #4d8bf0, transparent 40%); background: repeating-linear-gradient(45deg, color-mix(in srgb, #4d8bf0, transparent 84%) 0 6px, color-mix(in srgb, #4d8bf0, transparent 90%) 6px 12px); }
 .dpp-gevent-title { display: block; font-size: 0.72rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
