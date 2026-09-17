@@ -31,6 +31,3 @@ GitHub Pages.
    tables.
 3. Copy your Supabase project URL and public (anon) key into `config.js`.
 4. Open `index.html` — that's it. To host it, push to a GitHub Pages branch.
-
-Google Calendar sync is optional; setup instructions are in
-[`GCAL_SETUP.md`](GCAL_SETUP.md).
